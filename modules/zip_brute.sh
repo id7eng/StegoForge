@@ -27,6 +27,7 @@ analyze_zip_brute() {
 
     # Password protected — brute-force
     local pwlist="$wl"
+    [ -z "$pwlist" ] || [ ! -f "$pwlist" ] && pwlist="$SMART_WL"
     if [ -z "$pwlist" ] || [ ! -f "$pwlist" ]; then
         [ -f "${CONFIG_DIR}/passwords.conf" ] && pwlist="${CONFIG_DIR}/passwords.conf"
     fi

@@ -13,12 +13,13 @@ source "${CORE_DIR}/utils.sh"
 source "${CORE_DIR}/flags.sh"
 source "${CORE_DIR}/dependency.sh"
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 QUIET=true
-OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false
+OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false; SUMMARY=false; READONLY=false
 REPORT_FILE=""; TARGET=""; WORDLIST=""
 FINDINGS=()
 EMITTED=()
+SMART_WL=""
 
 declare -a MODULE_NAMES MODULE_PRIORITY_ORDER
 declare -A MODULE_DISPLAY MODULE_TYPES MODULE_DEPS MODULE_PRIORITY MODULE_PRODUCES MODULE_TRIGGERS
@@ -134,6 +135,13 @@ analyze_file() {
     local f="$1" wl="$2"
     local ftype_raw=$(get_file_type "$f")
 
+    if $READONLY; then
+        local tmpdir="/tmp/stegoforge_ro_$$"
+        mkdir -p "$tmpdir"
+        cp "$f" "$tmpdir/"
+        f="$tmpdir/$(basename "$f")"
+    fi
+
     if [ "$QUIET" = true ]; then exec 3>&1; exec 1>/dev/null; fi
 
     echo -e "\n${C}══════════════════════════════════════════════${N}"
@@ -153,22 +161,59 @@ analyze_file() {
 
 generate_report() {
     local header_msg="$1"
+    local -A seen_flag
+    local flags_list=()
+
+    for finding in "${FINDINGS[@]}"; do
+        for pattern in "${FLAG_PATTERNS[@]}"; do
+            local match=$(echo "$finding" | grep -oP "$pattern" 2>/dev/null | head -1)
+            if [ -n "$match" ]; then
+                local dup=false
+                for j in "${!flags_list[@]}"; do
+                    if [[ "${flags_list[$j]}" == *"$match"* ]]; then
+                        dup=true; break
+                    elif [[ "$match" == *"${flags_list[$j]}"* ]]; then
+                        unset flags_list[$j]
+                        flags_list=("${flags_list[@]}")
+                    fi
+                done
+                $dup || flags_list+=("$match")
+                break
+            fi
+        done
+    done
+
+    if $JSON; then
+        echo -e '{\n  "file": "'"$TARGET"'",'
+        echo -e '  "version": "'"$VERSION"'",'
+        echo -e '  "flags": ['"$(printf '"%s",' "${flags_list[@]}" | sed 's/,$//')"'],'
+        echo -e '  "count": '${#flags_list[@]}','
+        echo -e '  "findings": '${#FINDINGS[@]}','
+        echo -e '  "output": "'"$OUTDIR"'",'
+        echo -e '  "status": "'$([ ${#flags_list[@]} -gt 0 ] && echo "found" || echo "not_found")'"\n}'
+        return
+    fi
+
+    if $SUMMARY; then
+        local fname=$(basename "$TARGET")
+        if [ ${#flags_list[@]} -gt 0 ]; then
+            for flag in "${flags_list[@]}"; do
+                echo -e "${W}$fname${N} → ${LG}$flag${N}"
+            done
+        else
+            echo -e "${W}$fname${N} → ${Y}No flag${N}"
+        fi
+        return
+    fi
 
     if [ "$QUIET" = true ]; then
-        local -A seen_flag
-        local has_flag=false
-        for finding in "${FINDINGS[@]}"; do
-            for pattern in "${FLAG_PATTERNS[@]}"; do
-                local match=$(echo "$finding" | grep -oP "$pattern" 2>/dev/null | head -1)
-                if [ -n "$match" ] && [ -z "${seen_flag[$match]:-}" ]; then
-                    seen_flag["$match"]=1
-                    echo -e "${W}Flag:${N} ${LG}$match${N}"
-                    has_flag=true
-                    break
-                fi
+        if [ ${#flags_list[@]} -gt 0 ]; then
+            for flag in "${flags_list[@]}"; do
+                echo -e "${W}Flag:${N} ${LG}$flag${N}"
             done
-        done
-        $has_flag || echo -e "  ${Y}No flag found${N}"
+        else
+            echo -e "  ${Y}No flag found${N}"
+        fi
         return
     fi
 
@@ -198,7 +243,9 @@ main() {
         case "$1" in
             -r|--recursive) RECURSIVE=true; shift ;;
             -v|--verbose) VERBOSE=true; QUIET=false; shift ;;
-            -j|--json) JSON=true; shift ;;
+            --json) JSON=true; QUIET=true; shift ;;
+            --summary) SUMMARY=true; QUIET=true; shift ;;
+            --readonly) READONLY=true; shift ;;
             -o|--output) OUTDIR="$2"; shift 2 ;;
             -w|--wordlist) WORDLIST="$2"; shift 2 ;;
             -l|--list) list_modules ;;

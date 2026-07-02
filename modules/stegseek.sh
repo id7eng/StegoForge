@@ -8,8 +8,8 @@ MD_PRODUCES="password steghide_data"
 analyze_stegseek() {
     local f="$1" wl="$2"
     header "StegSeek" "Fast Steghide Brute-Force"
-    [ -z "$wl" ] && { info "No wordlist provided"; return; }
-    [ ! -f "$wl" ] && { info "Wordlist not found: $wl"; return; }
+    [ -z "$wl" ] || [ ! -f "$wl" ] && wl="$SMART_WL"
+    [ -z "$wl" ] || [ ! -f "$wl" ] && { info "No wordlist provided"; return; }
 
     info "Cracking with stegseek..."
     local outfile="${OUTDIR}/carved/stegseek_out"

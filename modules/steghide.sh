@@ -19,8 +19,10 @@ analyze_steghide() {
         local content=$(cat "$extract_out" 2>/dev/null)
         emit "steghide_data" "Empty password: $content"
         rm -f "$extract_out" 2>/dev/null
+        return
     fi
 
+    [ -z "$wl" ] || [ ! -f "$wl" ] && wl="$SMART_WL"
     [ -z "$wl" ] || [ ! -f "$wl" ] && return
 
     if command -v stegseek &>/dev/null; then

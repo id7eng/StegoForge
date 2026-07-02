@@ -15,17 +15,19 @@ usage() {
     echo -e "  -v, --verbose       Show detailed analysis"
     echo -e "  -r, --recursive     Scan directory recursively"
     echo -e "  -o, --output DIR    Output directory"
-    echo -e "  -j, --json          JSON output"
     echo -e "  -w, --wordlist FILE  Password list for brute-force"
     echo -e "  -l, --list          List available modules"
+    echo -e "     --json           JSON output"
+    echo -e "     --summary        Summary output (file → flag)"
+    echo -e "     --readonly       Don't modify original files"
     echo -e "     --doctor         Check dependencies"
     echo -e "  -h, --help          Show help"
     echo ""
     echo -e "${BOLD}Examples:${N}"
     echo -e "  stegoforge image.png"
     echo -e "  stegoforge -v image.jpg"
-    echo -e "  stegoforge -w rockyou.txt image.jpg"
-    echo -e "  stegoforge -r ~/challenges/"
+    echo -e "  stegoforge --json -r ~/challenges/"
+    echo -e "  stegoforge --readonly corrupted.png"
     exit 0
 }
 
