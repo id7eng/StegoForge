@@ -133,6 +133,14 @@ run_workflow() {
 # ─────────────────────────────────────────────
 analyze_file() {
     local f="$1" wl="$2"
+
+    # Auto-decompress gzip
+    if [[ "$f" == *.gz ]] || file -b "$f" 2>/dev/null | grep -qi "gzip compressed"; then
+        local decomp="${OUTDIR}/carved/$(basename "$f" .gz)"
+        gzip -dc "$f" > "$decomp" 2>/dev/null
+        [ -f "$decomp" ] && f="$decomp"
+    fi
+
     local ftype_raw=$(get_file_type "$f")
 
     if $READONLY; then

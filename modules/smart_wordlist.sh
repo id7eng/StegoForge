@@ -15,9 +15,11 @@ analyze_smart_wordlist() {
     basename "$f" | sed 's/\.[^.]*$//' >> "$wl_out"
     basename "$f" >> "$wl_out"
 
-    strings "$f" 2>/dev/null | grep -oE '[A-Za-z0-9_!@#$%^&*]{4,}' | sort -u >> "$wl_out" 2>/dev/null
-
-    strings "$f" 2>/dev/null | grep -oiE '(password|pass|key|secret) *[:=]? *[A-Za-z0-9_!@#$%^&*]{4,}' | sed 's/.*[:=] *//i' >> "$wl_out" 2>/dev/null
+    local size=$(stat -c%s "$f" 2>/dev/null || echo 0)
+    if [ "$size" -lt 10485760 ]; then
+        strings "$f" 2>/dev/null | head -5000 | grep -oE '[A-Za-z0-9_!@#$%^&*]{4,}' >> "$wl_out" 2>/dev/null
+        strings "$f" 2>/dev/null | grep -oiE '(password|pass|key|secret) *[:=]? *[A-Za-z0-9_!@#$%^&*]{4,}' | sed 's/.*[:=] *//i' >> "$wl_out" 2>/dev/null
+    fi
 
     if command -v exiftool &>/dev/null; then
         exiftool "$f" 2>/dev/null | grep -oE ': .{3,}' | sed 's/^: *//' | grep -oE '[A-Za-z0-9_]{4,}' >> "$wl_out" 2>/dev/null
