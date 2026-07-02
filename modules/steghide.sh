@@ -7,7 +7,7 @@ MD_PRODUCES="steghide_data password flag"
 
 analyze_steghide() {
     local f="$1" wl="$2"
-    local extract_out="${OUTDIR}/steghide_extracted"
+    local extract_out="${OUTDIR}/carved/steghide_out"
     header "Steghide" "JPEG/BMP/WAV Steganography"
     if ! command -v steghide &>/dev/null; then
         info "steghide not installed"
@@ -21,19 +21,34 @@ analyze_steghide() {
         rm -f "$extract_out" 2>/dev/null
     fi
 
-    if [ -n "$wl" ] && [ -f "$wl" ]; then
-        info "Brute-forcing with wordlist..."
-        while IFS= read -r p; do
-            [ -z "$p" ] && continue
-            steghide extract -sf "$f" -p "$p" -xf "$extract_out" -f >/dev/null 2>&1
-            if [ -f "$extract_out" ]; then
-                local content=$(cat "$extract_out" 2>/dev/null)
-                emit "password" "Password: $p"
-                emit "steghide_data" "$content"
-                rm -f "$extract_out" 2>/dev/null
-                return
-            fi
-        done < "$wl"
-        info "No password found"
+    [ -z "$wl" ] || [ ! -f "$wl" ] && return
+
+    if command -v stegseek &>/dev/null; then
+        info "Using stegseek (fast)..."
+        stegseek "$f" "$wl" -o "$extract_out" --quiet 2>/dev/null
+        if [ -f "$extract_out" ]; then
+            local pass=$(stegseek "$f" "$wl" 2>&1 | grep -oP 'password: \K.*' | head -1)
+            [ -n "$pass" ] && emit "password" "Password: $pass"
+            local content=$(cat "$extract_out" 2>/dev/null)
+            [ -n "$content" ] && emit "steghide_data" "$content"
+            rm -f "$extract_out" 2>/dev/null
+            return
+        fi
+        info "StegSeek found nothing"
+        return
     fi
+
+    info "Brute-forcing with wordlist..."
+    while IFS= read -r p; do
+        [ -z "$p" ] && continue
+        steghide extract -sf "$f" -p "$p" -xf "$extract_out" -f >/dev/null 2>&1
+        if [ -f "$extract_out" ]; then
+            local content=$(cat "$extract_out" 2>/dev/null)
+            emit "password" "Password: $p"
+            emit "steghide_data" "$content"
+            rm -f "$extract_out" 2>/dev/null
+            return
+        fi
+    done < "$wl"
+    info "No password found"
 }
