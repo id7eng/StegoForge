@@ -13,7 +13,7 @@ source "${CORE_DIR}/utils.sh"
 source "${CORE_DIR}/flags.sh"
 source "${CORE_DIR}/dependency.sh"
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 QUIET=true
 OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false
 REPORT_FILE=""; TARGET=""; WORDLIST=""
