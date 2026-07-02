@@ -1,0 +1,5 @@
+output/
+*.repaired
+*.crc_fixed
+__pycache__/
+*.pyc
