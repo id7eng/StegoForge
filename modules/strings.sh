@@ -12,7 +12,18 @@ analyze_strings() {
 
     while read l; do
         emit "keyword" "Keyword: $l"
+        for p in "${FLAG_PATTERNS[@]}"; do
+            local m=$(echo "$l" | grep -oP "$p" 2>/dev/null | head -1)
+            [ -n "$m" ] && { emit "flag" "$m"; break; }
+        done
     done < <(strings "$f" 2>/dev/null | grep -iE "$kw")
+
+    while read l; do
+        for p in "${FLAG_PATTERNS[@]}"; do
+            local m=$(echo "$l" | grep -oP "$p" 2>/dev/null | head -1)
+            [ -n "$m" ] && { emit "flag" "$m"; break; }
+        done
+    done < <(strings "$f" 2>/dev/null)
 
     while read b64; do
         local d=$(echo "$b64" | base64 -d 2>/dev/null)
