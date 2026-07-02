@@ -269,6 +269,91 @@ except: print('ERR')
 " 2>/dev/null | grep -q OK
 [ -f spec.wav ] && check "spectrogram" spec.wav "spectrogram" || { skip "spectrogram" "python/wav"; TOTAL=$((TOTAL+1)); }
 
+# [15] Smart Wordlist
+echo -e "${BOLD}[15/18] Smart Wordlist${N}"
+if command -v steghide &>/dev/null; then
+    python3 -c "
+from PIL import Image
+import random
+random.seed(99)
+img = Image.new('RGB', (100, 100))
+pix = img.load()
+for x in range(100):
+    for y in range(100):
+        pix[x,y] = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+img.save('smart_steg.jpg', 'JPEG', quality=100)
+" 2>/dev/null
+    echo -n "CTF{test_smartwl_ok}" > smart_secret.txt
+    steghide embed -cf smart_steg.jpg -ef smart_secret.txt -p "secretpass123" -f &>/dev/null
+    # Add password to file's metadata (so smart wordlist can extract it)
+    if command -v exiftool &>/dev/null; then
+        exiftool -Artist="secretpass123" smart_steg.jpg -overwrite_original &>/dev/null
+    else
+        # Fallback: append password as text after JPEG end
+        python3 -c "
+with open('smart_steg.jpg','ab') as f:
+    f.write(b'\nPASSWORD:secretpass123\n')
+" 2>/dev/null
+    fi
+    check "smart_wordlist" smart_steg.jpg "CTF{test_smartwl_ok}" "steghide"
+else
+    skip "smart_wordlist" "steghide"; TOTAL=$((TOTAL+1))
+fi
+
+# [16] JSON output
+echo -e "${BOLD}[16/18] JSON output${N}"
+echo "CTF{test_json_ok}" > json_test.txt
+out=$("$STEGOFORGE" --json json_test.txt 2>/dev/null)
+if echo "$out" | grep -q '"flags"' && echo "$out" | grep -q '"CTF{test_json_ok}"'; then
+    pass "json_output"
+else
+    echo "    [json_output] expected JSON with flag" >&2
+    fail "json_output"
+fi
+TOTAL=$((TOTAL+1))
+
+# [17] Summary output
+echo -e "${BOLD}[17/18] Summary output${N}"
+out=$("$STEGOFORGE" --summary json_test.txt 2>/dev/null)
+if echo "$out" | grep -q "→.*CTF{test_json_ok}"; then
+    pass "summary_output"
+else
+    echo "    [summary_output] expected summary with flag" >&2
+    fail "summary_output"
+fi
+TOTAL=$((TOTAL+1))
+rm -f json_test.txt
+
+# [18] Read-Only mode
+echo -e "${BOLD}[18/18] Read-Only mode${N}"
+python3 -c "
+import struct, zlib
+w,h=5,5; pix=bytearray()
+for y in range(h):
+    for x in range(w): pix.extend([x*50,y*50,128])
+def png(w,h,p):
+    def c(ct,d):
+        cd=ct+d; return struct.pack('>I',len(d))+cd+struct.pack('>I',zlib.crc32(cd)&0xffffffff)
+    s=b'\x89PNG\r\n\x1a\n'; ih=c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))
+    r=b''
+    for y in range(h): r+=b'\x00'+bytes(p[y*w*3:(y*w+3)*3])
+    id=c(b'IDAT',zlib.compress(r)); ie=c(b'IEND',b'')
+    return s+ih+id+ie
+data=bytearray(png(w,h,bytes(pix)))
+data[20:24]=struct.pack('>I',999)
+with open('ro_test.png','wb') as f: f.write(bytes(data))
+" 2>/dev/null
+orig_hash=$(md5sum ro_test.png | cut -d' ' -f1)
+out=$("$STEGOFORGE" --readonly --json ro_test.png 2>/dev/null)
+final_hash=$(md5sum ro_test.png | cut -d' ' -f1)
+if [ "$orig_hash" = "$final_hash" ]; then
+    pass "readonly_mode"
+else
+    echo "    [readonly] file was modified (hash changed)" >&2
+    fail "readonly_mode"
+fi
+TOTAL=$((TOTAL+1))
+
 cd / >/dev/null
 rm -rf "$TEMP_DIR"
 
