@@ -1,6 +1,6 @@
 #!/bin/bash
 echo "=============================="
-echo " StegoForge v1.3.1 - Installer"
+echo " StegoForge v1.3.2 - Installer"
 echo "=============================="
 echo ""
 

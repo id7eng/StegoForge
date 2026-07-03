@@ -35,7 +35,7 @@ analyze_repair() {
     fi
 
     local offset=0
-    [ "$first_two" = "5c78" ] && offset=3
+    [ "$first_two" = "5c78" ] && offset=2
 
     case "$guess" in
         jpeg) (printf '\xff\xd8'; tail -c +$((offset+1)) "$f") > "$repaired" 2>/dev/null ;;

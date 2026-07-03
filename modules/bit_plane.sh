@@ -8,14 +8,20 @@ MD_PRODUCES="bitplane"
 analyze_bit_plane() {
     local f="$1"
     header "Bit Plane" "LSB Bit Plane Extraction"
+
+    local size=$(stat -c%s "$f" 2>/dev/null)
+    [ "$size" -gt 500000 ] && info "Skip bit plane: file too large ($size bytes)" && return
+
     local bpd="${OUTDIR}/bitplanes/$(basename "$f")"
     mkdir -p "$bpd"
 
-    python3 -c "
-from PIL import Image
+export BITPLANE_FILE="$f"
+export BITPLANE_OUTDIR="$bpd"
+local result=$(python3 -c "
 import os, sys
+from PIL import Image
 
-img = Image.open('$f')
+img = Image.open(os.environ['BITPLANE_FILE'])
 if img.mode == 'RGBA':
     bands = 4
 elif img.mode == 'RGB':
@@ -31,7 +37,7 @@ else:
 
 w, h = img.size
 pixels = list(img.getdata())
-outdir = '$bpd'
+outdir = os.environ['BITPLANE_OUTDIR']
 
 for bi in range(8):
     plane = Image.new('L', (w, h))
@@ -49,10 +55,10 @@ for bi in range(8):
     plane.save(os.path.join(outdir, f'bit{bi}.png'))
 
 print(f'OK:{w}x{h}')
-" 2>/dev/null | while read line; do
-        case "$line" in
-            OK:*) emit "bitplane" "8 bit planes → $bpd/" ;;
-            ERR:*) info "${line#ERR:}" ;;
-        esac
-    done
+" 2>/dev/null)
+unset BITPLANE_FILE BITPLANE_OUTDIR
+case "$result" in
+    OK:*) emit "bitplane" "8 bit planes → $bpd/" ;;
+    ERR:*) info "${result#ERR:}" ;;
+esac
 }

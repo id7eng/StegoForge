@@ -18,7 +18,7 @@ analyze_ads_scan() {
     [ -d "$f" ] && target="$f" || target="$(dirname "$f")"
 
     if mount 2>/dev/null | grep -q "$target" && mount 2>/dev/null | grep "$target" | grep -qi 'ntfs'; then
-        find "$target" -type f 2>/dev/null | while read file; do
+        while read file; do
             local streams=$(getfattr -d "$file" 2>/dev/null | grep ':' | cut -d= -f1)
             [ -z "$streams" ] && continue
             warn "ADS on $file"
@@ -27,7 +27,7 @@ analyze_ads_scan() {
                 emit "ads_found" "ADS: $file:$s"
                 [ -n "$content" ] && emit "ads_found" "ADS content: $content"
             done
-        done
+        done < <(find "$target" -type f 2>/dev/null)
     else
         info "Not on NTFS"
     fi

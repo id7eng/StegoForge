@@ -46,7 +46,7 @@ with open('$3','wb') as f: f.write(png(w,h,bytes(pix)))
 }
 
 echo -e "${C}╔══════════════════════════════════════════════╗${N}"
-echo -e "${C}║     ${W}StegoForge v1.3.1${C} - Test Suite       ║${N}"
+echo -e "${C}║     ${W}StegoForge v1.3.2${C} - Test Suite       ║${N}"
 echo -e "${C}╚══════════════════════════════════════════════╝${N}"
 echo ""
 
@@ -354,8 +354,139 @@ else
 fi
 TOTAL=$((TOTAL+1))
 
+# [19] Binary Digits
+echo -e "${BOLD}[19/20] Binary Digits${N}"
+python3 -c "
+import struct
+# Minimal JPEG with flag in comment
+data = b'\xff\xd8'
+data += b'\xff\xe0' + struct.pack('>H', 16) + b'JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+comment = b'CTF{test_binary_digits_ok}'
+data += b'\xff\xfe' + struct.pack('>H', len(comment)+2) + comment
+data += b'\xff\xc0' + struct.pack('>H', 11) + b'\x08\x00\x01\x00\x01\x01\x01\x11\x00'
+data += b'\xff\xda' + struct.pack('>H', 8) + b'\x01\x01\x00\x00\x3f\x00'
+data += b'\x00' * 64 + b'\xff\xd9'
+bits = ''.join(f'{b:08b}' for b in data)
+with open('digits_test.txt', 'w') as f: f.write(bits)
+" 2>/dev/null
+check "binary_digits" digits_test.txt "CTF{test_binary_digits_ok}"
+TOTAL=$((TOTAL+1))
+
+# [20] Base64 Full Decode
+echo -e "${BOLD}[20/20] Base64 Full Decode + Hex${N}"
+python3 -c "
+import struct, zlib, base64
+hex_str = '4354467b746573745f6261736536345f6865785f6f6b7d'  # CTF{test_base64_hex_ok}
+def make_chunk(ct, d):
+    cd = ct + d
+    return struct.pack('>I', len(d)) + cd + struct.pack('>I', zlib.crc32(cd) & 0xffffffff)
+png = b'\x89PNG\r\n\x1a\n'
+ihdr = make_chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 0, 0, 0, 0))
+png += ihdr
+text = make_chunk(b'tEXt', b'flag\x00' + hex_str.encode())
+png += text
+raw = b'\x00\x00'
+compressed = zlib.compress(raw)
+png += make_chunk(b'IDAT', compressed)
+png += make_chunk(b'IEND', b'')
+b64 = base64.b64encode(png).decode()
+with open('b64_full_test.txt', 'w') as f: f.write(b64)
+" 2>/dev/null
+check "base64_full_hex" b64_full_test.txt "CTF{test_base64_hex_ok}"
+TOTAL=$((TOTAL+1))
+
+# [21] ROT Brute
+echo -e "${BOLD}[21/25] ROT Brute${N}"
+python3 -c "
+import codecs
+flag = 'picoCTF{test_rot_brute_ok}'
+encoded = codecs.encode(flag, 'rot_13')
+with open('rot_test.txt', 'w') as f: f.write(encoded)
+" 2>/dev/null
+check "rot_brute" rot_test.txt "picoCTF{test_rot_brute_ok}"
+TOTAL=$((TOTAL+1))
+
+# [22] EXIF Thumbnail
+echo -e "${BOLD}[22/25] EXIF Thumbnail${N}"
+if command -v exiftool &>/dev/null && python3 -c "from PIL import Image; print('ok')" 2>/dev/null; then
+    python3 -c "
+from PIL import Image
+import struct, os
+# Create thumbnail JPEG with flag in a COM marker (strings can find it)
+flag = b'CTF{test_thumb_ok}'
+thumb_jpeg = b'\xff\xd8'
+thumb_jpeg += b'\xff\xe0' + struct.pack('>H', 16) + b'JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+thumb_jpeg += b'\xff\xfe' + struct.pack('>H', len(flag)+2) + flag
+thumb_jpeg += b'\xff\xc0' + struct.pack('>H', 11) + b'\x08\x00\x01\x00\x01\x01\x01\x11\x00'
+thumb_jpeg += b'\xff\xda' + struct.pack('>H', 8) + b'\x01\x01\x00\x00\x3f\x00'
+thumb_jpeg += b'\x00' * 64 + b'\xff\xd9'
+with open('_thumb_src.jpg', 'wb') as f: f.write(thumb_jpeg)
+
+import random
+random.seed(1)
+m = Image.new('RGB', (100, 100))
+p = m.load()
+for x in range(100):
+    for y in range(100):
+        p[x,y] = (random.randint(0,255), random.randint(0,255), random.randint(0,255))
+m.save('thumb_main.jpg', 'JPEG', quality=90)
+" 2>/dev/null
+    exiftool '-ThumbnailImage<=_thumb_src.jpg' thumb_main.jpg -overwrite_original &>/dev/null
+    check "exif_thumbnail" thumb_main.jpg "CTF{test_thumb_ok}"
+else
+    skip "exif_thumbnail" "exiftool/PIL"; TOTAL=$((TOTAL+1))
+fi
+
+# [23] PDF Images
+echo -e "${BOLD}[23/25] PDF Images${N}"
+if command -v pdfimages &>/dev/null && python3 -c "from reportlab.graphics.shapes import *; print('ok')" 2>/dev/null; then
+    python3 -c "
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+c = canvas.Canvas('pdf_img_test.pdf', pagesize=letter)
+c.drawString(100, 750, 'CTF{test_pdf_image_ok}')
+c.save()
+" 2>/dev/null
+    check "pdf_images" pdf_img_test.pdf "CTF{test_pdf_image_ok}"
+else
+    skip "pdf_images" "pdfimages/reportlab"; TOTAL=$((TOTAL+1))
+fi
+
+# [24] Disk Forensics
+echo -e "${BOLD}[24/25] Disk Forensics${N}"
+if command -v mmls &>/dev/null && command -v fls &>/dev/null; then
+    # Create a small FAT filesystem image with a flag file
+    dd if=/dev/zero of=disk_test.img bs=1K count=1440 2>/dev/null
+    mkfs.fat disk_test.img 2>/dev/null
+    # Mount, write flag, unmount
+    mkdir -p /tmp/stegoforge_mnt
+    sudo mount -o loop disk_test.img /tmp/stegoforge_mnt 2>/dev/null && {
+        echo "CTF{test_disk_ok}" | sudo tee /tmp/stegoforge_mnt/flag.txt >/dev/null
+        sudo umount /tmp/stegoforge_mnt
+        check "disk_forensics" disk_test.img "CTF{test_disk_ok}"
+    } || {
+        skip "disk_forensics" "mount"; TOTAL=$((TOTAL+1))
+    }
+    rmdir /tmp/stegoforge_mnt 2>/dev/null
+else
+    skip "disk_forensics" "sleuthkit"; TOTAL=$((TOTAL+1))
+fi
+
+# [25] PCAP Analysis
+echo -e "${BOLD}[25/25] PCAP Analysis${N}"
+if command -v tshark &>/dev/null && python3 -c "from scapy.all import *; print('ok')" 2>/dev/null; then
+    python3 -c "
+from scapy.all import *
+pkt = IP(dst='1.2.3.4')/TCP(dport=80)/'GET /picoCTF{test_pcap_ok} HTTP/1.1\r\n'
+wrpcap('pcap_test.pcap', [pkt])
+" 2>/dev/null
+    check "pcap_analysis" pcap_test.pcap "picoCTF{test_pcap_ok}"
+else
+    skip "pcap_analysis" "tshark/scapy"; TOTAL=$((TOTAL+1))
+fi
+
 cd / >/dev/null
-rm -rf "$TEMP_DIR"
+rm -rf "$TEMP_DIR" /tmp/stegoforge_mnt /tmp/thumb_test_tmp.png 2>/dev/null
 
 echo ""
 echo -e "${C}══════════════════════════════════════════════${N}"

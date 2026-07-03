@@ -38,11 +38,14 @@ analyze_zip_brute() {
     fi
 
     info "Brute-forcing passwords..."
-    while IFS= read -r p; do
-        [ -z "$p" ] && continue
-        rm -rf "$ext_dir"/* 2>/dev/null
-        if unzip -o -P "$p" "$f" -d "$ext_dir" &>/dev/null 2>&1; then
-            emit "zip_password" "ZIP password: $p"
+
+    # Use fcrackzip if available (much faster)
+    if command -v fcrackzip &>/dev/null; then
+        local fcrack_out=$(fcrackzip -v -D -p "$pwlist" "$f" 2>/dev/null)
+        local fpass=$(echo "$fcrack_out" | grep -oP 'possible pw found: \K\S+' 2>/dev/null)
+        if [ -n "$fpass" ]; then
+            emit "zip_password" "ZIP password: $fpass"
+            unzip -o -P "$fpass" "$f" -d "$ext_dir" &>/dev/null 2>&1
             for ext_file in "$ext_dir"/*; do
                 [ -f "$ext_file" ] && {
                     local content=$(strings "$ext_file" 2>/dev/null | head -5)
@@ -52,7 +55,24 @@ analyze_zip_brute() {
             [ "$cleanup_pw" = true ] && rm -f "$pwlist"
             return
         fi
-    done < "$pwlist"
+    else
+        # Fallback to unzip loop
+        while IFS= read -r p; do
+            [ -z "$p" ] && continue
+            rm -rf "$ext_dir"/* 2>/dev/null
+            if unzip -o -P "$p" "$f" -d "$ext_dir" &>/dev/null 2>&1; then
+                emit "zip_password" "ZIP password: $p"
+                for ext_file in "$ext_dir"/*; do
+                    [ -f "$ext_file" ] && {
+                        local content=$(strings "$ext_file" 2>/dev/null | head -5)
+                        [ -n "$content" ] && emit "extracted" "$content"
+                    }
+                done
+                [ "$cleanup_pw" = true ] && rm -f "$pwlist"
+                return
+            fi
+        done < "$pwlist"
+    fi
 
     [ "$cleanup_pw" = true ] && rm -f "$pwlist"
     info "No ZIP password found"

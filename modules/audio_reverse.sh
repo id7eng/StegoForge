@@ -20,19 +20,32 @@ analyze_audio_reverse() {
         emit "reversed_data" "Reversed text: $line"
     done <<< "$text"
 
+    export AUDIO_REVERSED_FILE="$reversed_file"
     python3 -c "
-import wave, re
+import os, wave, re
 try:
-    with wave.open('$reversed_file', 'rb') as w:
+    with wave.open(os.environ['AUDIO_REVERSED_FILE'], 'rb') as w:
         frames = w.readframes(w.getnframes())
     texts = re.findall(b'[A-Za-z0-9_{}]{4,}', frames)
     for t in texts:
         print(t.decode('ascii', errors='replace'))
 except Exception:
     pass
-" 2>/dev/null | while read line; do
+" 2>/dev/null)
+    while read line; do
         emit "reversed_data" "Audio bytes: $line"
-    done
+    done < <(python3 -c "
+import os, wave, re
+try:
+    with wave.open(os.environ['AUDIO_REVERSED_FILE'], 'rb') as w:
+        frames = w.readframes(w.getnframes())
+    texts = re.findall(b'[A-Za-z0-9_{}]{4,}', frames)
+    for t in texts:
+        print(t.decode('ascii', errors='replace'))
+except Exception:
+    pass
+" 2>/dev/null)
+    unset AUDIO_REVERSED_FILE
 
     rm -f "$reversed_file" 2>/dev/null
 }

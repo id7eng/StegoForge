@@ -18,8 +18,6 @@ load_flag_patterns() {
 extract_flags() {
     local text="$1"
     for p in "${FLAG_PATTERNS[@]}"; do
-        echo "$text" | grep -oP "$p" 2>/dev/null | while read m; do
-            log "FLAG: $m"
-        done
+        echo "$text" | grep -oP "$p" 2>/dev/null
     done
 }

@@ -13,12 +13,13 @@ source "${CORE_DIR}/utils.sh"
 source "${CORE_DIR}/flags.sh"
 source "${CORE_DIR}/dependency.sh"
 
-VERSION="1.3.1"
+VERSION="1.3.2"
 QUIET=true
 OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false; SUMMARY=false; READONLY=false
 REPORT_FILE=""; TARGET=""; WORDLIST=""
 FINDINGS=()
 EMITTED=()
+ANALYZE_THIS=""
 SMART_WL=""
 
 declare -a MODULE_NAMES MODULE_PRIORITY_ORDER
@@ -164,6 +165,13 @@ analyze_file() {
 
     run_workflow "$f" "$wl"
 
+    # Re-analyze if repair/polyglot fixed the file
+    if [ -n "$ANALYZE_THIS" ] && [ -f "$ANALYZE_THIS" ]; then
+        local repaired="$ANALYZE_THIS"
+        ANALYZE_THIS=""
+        run_workflow "$repaired" "$wl"
+    fi
+
     [ "$QUIET" = true ] && exec 1>&3 3>&-
 }
 
@@ -171,6 +179,7 @@ generate_report() {
     local header_msg="$1"
     local -A seen_flag
     local flags_list=()
+    local partial_flags=()
 
     for finding in "${FINDINGS[@]}"; do
         for pattern in "${FLAG_PATTERNS[@]}"; do
@@ -191,6 +200,18 @@ generate_report() {
         done
     done
 
+    # Also collect partial/tail flags as fallback
+    for finding in "${FINDINGS[@]}"; do
+        local tail=$(echo "$finding" | grep -oP '[a-zA-Z0-9_!@#$%^&*()+\-]{6,}\}' 2>/dev/null | head -1)
+        if [ -n "$tail" ]; then
+            local dup=false
+            for p in "${partial_flags[@]}"; do
+                [[ "$p" == "$tail" ]] && { dup=true; break; }
+            done
+            $dup || partial_flags+=("$tail")
+        fi
+    done
+
     if $JSON; then
         echo -e '{\n  "file": "'"$TARGET"'",'
         echo -e '  "version": "'"$VERSION"'",'
@@ -208,6 +229,10 @@ generate_report() {
             for flag in "${flags_list[@]}"; do
                 echo -e "${W}$fname${N} → ${LG}$flag${N}"
             done
+        elif [ ${#partial_flags[@]} -gt 0 ]; then
+            for p in "${partial_flags[@]}"; do
+                echo -e "${W}$fname${N} → ${Y}Partial: $p${N}"
+            done
         else
             echo -e "${W}$fname${N} → ${Y}No flag${N}"
         fi
@@ -218,6 +243,11 @@ generate_report() {
         if [ ${#flags_list[@]} -gt 0 ]; then
             for flag in "${flags_list[@]}"; do
                 echo -e "${W}Flag:${N} ${LG}$flag${N}"
+            done
+        elif [ ${#partial_flags[@]} -gt 0 ]; then
+            echo -e "  ${Y}Partial flag(s):${N}"
+            for p in "${partial_flags[@]}"; do
+                echo -e "    ${Y}$p${N}"
             done
         else
             echo -e "  ${Y}No flag found${N}"
@@ -234,6 +264,15 @@ generate_report() {
         for f in "${FINDINGS[@]}"; do echo -e "${C}║${G}  OK${N} $f"; done
     else
         echo -e "${C}║  ${Y}No suspicious findings${N}"
+    fi
+    if [ ${#flags_list[@]} -gt 0 ]; then
+        echo -e "${C}║${N}"
+        echo -e "${C}║${G}  Flag(s):${N}"
+        for flag in "${flags_list[@]}"; do echo -e "${C}║${LG}  $flag${N}"; done
+    elif [ ${#partial_flags[@]} -gt 0 ]; then
+        echo -e "${C}║${N}"
+        echo -e "${C}║${Y}  Partial flag(s):${N}"
+        for p in "${partial_flags[@]}"; do echo -e "${C}║${Y}  $p${N}"; done
     fi
     echo -e "${C}║${N}"
     echo -e "${C}║${N}  Output: ${B}$OUTDIR${N}"

@@ -14,17 +14,19 @@ analyze_stepic() {
         return
     fi
 
+    export STEPIC_FILE="$f"
     local out=$(python3 -c "
-import stepic
+import os, stepic
 from PIL import Image
 try:
-    im = Image.open('$f')
+    im = Image.open(os.environ['STEPIC_FILE'])
     data = stepic.decode(im)
     if data.strip():
         print(data)
 except Exception:
     pass
 " 2>/dev/null)
+    unset STEPIC_FILE
 
     [ -n "$out" ] && emit "stepic_data" "Stepic data: $out"
 }

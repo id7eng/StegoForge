@@ -14,3 +14,15 @@ emit() {
     log "$data"
     [ "$VERBOSE" = true ] && echo -e "  ${C}[>$type]${N} $data"
 }
+
+save_artifact() {
+    local src="$1" input_file="$2" label="$3"
+    [ -f "$src" ] && [ -s "$src" ] || return
+    local base=$(basename "$input_file" 2>/dev/null)
+    local dir=$(dirname "$input_file" 2>/dev/null)
+    local ext="${src##*.}"
+    local name="${label}_${base%.*}.${ext}"
+    local dest="${dir}/${name}"
+    [ -f "$dest" ] && dest="${dir}/${name%.*}_$$.${ext}"
+    cp "$src" "$dest" 2>/dev/null && echo -e "  ${G}[SAVED]${N} ${W}$dest${N}" >&2
+}
