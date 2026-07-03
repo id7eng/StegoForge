@@ -6,7 +6,7 @@ echo ""
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 echo "[*] Checking dependencies..."
-for dep in bash file xxd strings md5sum sha256sum; do
+for dep in bash file xxd strings md5sum sha256sum jq; do
     command -v "$dep" &>/dev/null || echo "  [WARN] $dep missing (core required)"
 done
 

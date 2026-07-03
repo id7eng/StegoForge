@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "file_rules": {
+    "png": {
+      "base_boost": 10,
+      "tool_priority": ["zsteg", "png_check", "png_crc", "binwalk", "strings", "metadata", "bit_plane", "binary_border", "fft_domain"],
+      "conditional_priority": [
+        {
+          "condition": "trailing",
+          "keywords": ["IEND", "extra", "trailing", "after IEND", "data after"],
+          "boost": ["binwalk", "foremost", "append_data", "polyglot_detector"]
+        },
+        {
+          "condition": "crc_mismatch",
+          "keywords": ["CRC", "mismatch", "wrong"],
+          "boost": ["repair", "png_crc"]
+        }
+      ]
+    },
+    "jpg": {
+      "base_boost": 10,
+      "tool_priority": ["stegseek", "steghide", "outguess", "jphide", "f5", "stegdetect", "metadata", "strings", "jpeg_dqt", "binary_border"],
+      "conditional_priority": [
+        {
+          "condition": "has_comment",
+          "keywords": ["Comment", "comment", "exif"],
+          "boost": ["steghide", "stegseek", "stegdetect"]
+        }
+      ]
+    },
+    "jpeg": {
+      "base_boost": 10,
+      "inherit": "jpg"
+    },
+    "wav": {
+      "base_boost": 10,
+      "tool_priority": ["steghide", "spectrogram", "audio_reverse", "sstv", "dtmf"],
+      "conditional_priority": [
+        {
+          "condition": "spectrogram_data",
+          "keywords": ["spectrogram", "OK:", "Spectrogram"],
+          "boost": ["ocr", "zsteg"]
+        }
+      ]
+    },
+    "mp3": {
+      "base_boost": 10,
+      "tool_priority": ["mp3stego", "spectrogram", "audio_reverse", "steghide"],
+      "conditional_priority": []
+    },
+    "pdf": {
+      "base_boost": 10,
+      "tool_priority": ["pdf_analysis", "pdf_images", "strings", "metadata", "binwalk", "ocr"],
+      "conditional_priority": [
+        {
+          "condition": "has_embedded",
+          "keywords": ["obj", "EmbeddedFile", "stream"],
+          "boost": ["binwalk", "foremost", "olevba"]
+        }
+      ]
+    },
+    "gif": {
+      "base_boost": 10,
+      "tool_priority": ["gif_palette", "metadata", "zsteg", "binary_border", "fft_domain"],
+      "conditional_priority": []
+    },
+    "bmp": {
+      "base_boost": 10,
+      "tool_priority": ["zsteg", "bit_plane", "metadata", "steghide", "stegseek", "stepic", "binary_border", "fft_domain"],
+      "conditional_priority": []
+    },
+    "zip": {
+      "base_boost": 10,
+      "tool_priority": ["zip_brute", "binwalk", "strings"],
+      "conditional_priority": [
+        {
+          "condition": "password_found",
+          "keywords": ["password", "found", "PASSWORD"],
+          "boost": ["binwalk", "foremost", "strings"]
+        }
+      ]
+    }
+  },
+  "default_priority": ["strings", "xor_brute", "rot_brute", "binwalk", "foremost"],
+  "metadata": {
+    "description": "File-type priority boosting rules. base_boost = priority reduction for listed tools. Higher boost = earlier execution.",
+    "last_updated": "2026-07-04"
+  }
+}

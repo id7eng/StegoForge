@@ -13,6 +13,7 @@ source "${CORE_DIR}/utils.sh"
 source "${CORE_DIR}/flags.sh"
 source "${CORE_DIR}/dependency.sh"
 source "${CORE_DIR}/docker.sh"
+source "${CORE_DIR}/priority.sh"
 
 VERSION="1.3.4"
 QUIET=true; DOCKER_MODE=false
@@ -110,6 +111,23 @@ run_workflow() {
                 "analyze_$name" "$f" "$wl"
             fi
 
+            # Conditional priority boost: check emitted data and boost modules
+            local emitted_combined=""
+            for ev in "${EMITTED[@]}"; do
+                emitted_combined+="$ev"$'\n'
+            done
+            [ -n "$emitted_combined" ] && get_conditional_boost "$name" "$emitted_combined"
+            # Re-sort priority order after any boost changes
+            MODULE_PRIORITY_ORDER=($(
+                for n in "${MODULE_NAMES[@]}"; do
+                    echo "${MODULE_PRIORITY[$n]:-50}:$n"
+                done | sort -t: -k1 -n | cut -d: -f2
+            ))
+            run_queue=("${MODULE_PRIORITY_ORDER[@]}")
+            for done_name in "${run_done[@]}"; do
+                run_queue=("${run_queue[@]/$done_name}")
+            done
+
             # Process triggers
             for ev in "${EMITTED[@]}"; do
                 local ev_type="${ev%%:*}"
@@ -144,6 +162,16 @@ analyze_file() {
     fi
 
     local ftype_raw=$(get_file_type "$f")
+
+    # Priority boosting based on file type
+    local ftype_first=$(echo "$ftype_raw" | awk '{print tolower($1)}')
+    get_priority_boosted_modules "$ftype_first"
+    # Re-sort priority order after boosting
+    MODULE_PRIORITY_ORDER=($(
+        for name in "${MODULE_NAMES[@]}"; do
+            echo "${MODULE_PRIORITY[$name]:-50}:$name"
+        done | sort -t: -k1 -n | cut -d: -f2
+    ))
 
     if $READONLY; then
         local tmpdir="/tmp/stegoforge_ro_$$"
@@ -306,6 +334,8 @@ main() {
 
     [ -z "$TARGET" ] && usage
     [ ! -e "$TARGET" ] && err "Path not found: $TARGET" && exit 1
+
+    load_priority_rules
 
     # Auto-docker: if --docker or native tools missing, run inside container
     if $DOCKER_MODE || ! docker_native_ok; then

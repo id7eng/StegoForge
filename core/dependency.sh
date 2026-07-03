@@ -4,7 +4,7 @@ doctor() {
     echo -e "${C}╚══════════════════════════════════════════════╝${N}"
     echo ""
 
-    local core_deps=("bash" "file" "xxd" "strings" "md5sum" "sha256sum")
+    local core_deps=("bash" "file" "xxd" "strings" "md5sum" "sha256sum" "jq")
     local opt_deps=("exiftool" "binwalk" "foremost" "steghide" "zsteg" "fcrackzip" "pngcheck" "getfattr")
     local py_deps=("python3")
 
