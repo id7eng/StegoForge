@@ -149,10 +149,10 @@ stegoforge suspicious.png
                            │
           ┌────────────────┼────────────────┐
           │                │                │
-   ┌──────▼──────┐  ┌─────▼──────┐  ┌──────▼──────┐
-   │  Repair /  │  │  Priority  │  │  Feature   │
-   │  Polyglot  │  │  Scheduler │  │  Modules   │
-   └────────────┘  └────────────┘  └─────────────┘
+   ┌──────▼──────┐   ┌─────▼──────┐  ┌──────▼──────┐
+   │   Repair /  │   │  Priority  │  │   Feature   │
+   │   Polyglot  │   │  Scheduler │  │   Modules   │
+   └─────────────┘   └────────────┘  └─────────────┘
 ```
 
 **Pipeline:**
