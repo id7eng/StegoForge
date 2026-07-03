@@ -11,20 +11,6 @@ analyze_spectrogram() {
     local out="${OUTDIR}/spectrograms/$(basename "$f").png"
     export SPECTROGRAM_FILE="$f"
     export SPECTROGRAM_OUT="$out"
-    python3 -c "
-import os
-try:
-    import numpy as np, matplotlib.pyplot as plt
-    from scipy.io import wavfile
-    sr, data = wavfile.read(os.environ['SPECTROGRAM_FILE'])
-    if len(data.shape) > 1: data = data[:, 0]
-    plt.specgram(data, Fs=sr, NFFT=512, cmap='gray')
-    plt.savefig(os.environ['SPECTROGRAM_OUT'], dpi=150, bbox_inches='tight')
-    outpath = os.environ['SPECTROGRAM_OUT']
-    print(f'OK: {outpath}')
-except Exception as e:
-    print(f'ERR: {e}')
-" 2>/dev/null)
     while read line; do
         case "$line" in
             OK:*) emit "spectrogram" "Spectrogram → ${line#OK:}" ;;

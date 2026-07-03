@@ -33,9 +33,10 @@ analyze_video() {
         done <<< "$text"
     done
 
-    export VIDEO_FRAME_DIR="${frame_dir}"
-    export VIDEO_OUTDIR="${OUTDIR}"
-    python3 -c "
+    local outdir="${OUTDIR}"
+    while read line; do
+        info "$line"
+    done < <(python3 -c "
 import os, sys
 try:
     import numpy as np
@@ -56,55 +57,8 @@ acc_img = Image.fromarray(acc.astype(np.uint8))
 acc_img.save(os.environ['VIDEO_OUTDIR'] + '/carved/video_accumulated.png')
 print('Accumulated image saved (' + str(len(frames)) + ' frames)')
 " 2>/dev/null)
-    while read line; do
-        info "$line"
-    done < <(python3 -c "
-import sys, os
-try:
-    import numpy as np
-    from PIL import Image
-    import glob
-except ImportError:
-    sys.exit(0)
+    unset VIDEO_OUTDIR
 
-frames = sorted(glob.glob(os.environ['VIDEO_FRAME_DIR'] + '/frame_*.png'))
-if not frames:
-    sys.exit(0)
-
-acc = np.array(Image.open(frames[0]).convert('L'), dtype=float)
-for f in frames[1:]:
-    acc += np.array(Image.open(f).convert('L'), dtype=float)
-acc /= len(frames)
-acc_img = Image.fromarray(acc.astype(np.uint8))
-acc_img.save(os.environ['VIDEO_OUTDIR'] + '/carved/video_accumulated.png')
-print('Accumulated image saved (' + str(len(frames)) + ' frames)')
-" 2>/dev/null)
-    unset VIDEO_FRAME_DIR VIDEO_OUTDIR
-
-    export VIDEO_FRAME_DIR="${frame_dir}"
-    python3 -c "
-import sys, os
-try:
-    import numpy as np
-    from PIL import Image
-    import glob
-except ImportError:
-    sys.exit(0)
-
-frames = sorted(glob.glob(os.environ['VIDEO_FRAME_DIR'] + '/frame_*.png'))
-if len(frames) < 2:
-    sys.exit(0)
-
-prev = np.array(Image.open(frames[0]).convert('L'), dtype=float)
-for f in frames[1:]:
-    curr = np.array(Image.open(f).convert('L'), dtype=float)
-    diff = np.abs(curr - prev)
-    if diff.max() > 0:
-        diff_img = Image.fromarray((diff * (255.0 / diff.max())).astype(np.uint8))
-        diff_img.save(os.path.join(os.environ['VIDEO_FRAME_DIR'], 'diff_' + os.path.basename(f)))
-    prev = curr
-print('Frame differencing complete')
-" 2>/dev/null)
     while read line; do
         info "$line"
     done < <(python3 -c "
