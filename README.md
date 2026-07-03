@@ -1,228 +1,322 @@
 
-```
-  ___________        __          _____                 
- /   _____/  | _____/  |_  _____/ ____\____    ____   
- \_____  \|  |/ /\   __\/  _ \   __\\__  \  /    \   
- /        \    <   |  | (  <_> )  |   / __ \|   |  \  
-/_______  /__|_ \  |__|  \____/|__|  (____  /___|  /  
-        \/     \/                        \/     \/    
-```
+<p align="center">
+  <pre>
+   _________ __        ________                   
+  /   _____/  |_____  \_____  \___  ___  ___  ___ 
+  \_____  \|  |  \__  \ /  ____/  / /  /  /  \  \
+  /        \   |  / __ \ >     <  / /  /  /   >   \
+ /_______  /___| (____  /___/\  \/ /  /  /___/  /\  \
+         \/     \/     \/      \_/           \/  \_/
+  </pre>
+  <h1>StegoForge</h1>
+  <p><strong>The All-in-One CTF Steganography & Forensics Arsenal</strong></p>
+  <p>
+    <a href="https://www.gnu.org/software/bash/"><img src="https://img.shields.io/badge/language-bash-4EAA25?logo=gnubash&logoColor=white" alt="Language"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+    <a href="https://github.com/id7eng/StegoForge/releases"><img src="https://img.shields.io/badge/version-1.3.3-green" alt="Version"></a>
+    <img src="https://img.shields.io/badge/modules-44-orange" alt="Modules">
+    <img src="https://img.shields.io/badge/tests-22%20PASS%200%20FAIL-brightgreen" alt="Tests">
+    <img src="https://img.shields.io/badge/platform-linux%20%7C%20wsl-lightgrey" alt="Platform">
+  </p>
 
-# StegoForge — v1.3.2
-
-**The All-in-One CTF Steganography & Forensics Arsenal**
-
-> 44 modules · 25+ file formats · Smart workflow engine · Auto-detect · Auto-repair · Zero AI
-
-```bash
-stegoforge image.png          # Extract & display flag
-stegoforge -v image.jpg       # Full verbose forensic analysis
-stegoforge -r ~/CTF/          # Recursive directory scan
-```
+  <table>
+    <tr>
+      <td><code>stegoforge image.png</code></td>
+      <td>→ Extract & display flag</td>
+    </tr>
+    <tr>
+      <td><code>stegoforge -v image.jpg</code></td>
+      <td>→ Full forensic report</td>
+    </tr>
+    <tr>
+      <td><code>stegoforge -r ~/CTF/</code></td>
+      <td>→ Recursive directory scan</td>
+    </tr>
+  </table>
+</p>
 
 ---
 
-## Installation
+## 📋 Table of Contents
+
+- [Quick Start](#rocket-quick-start)
+- [Features](#-features)
+- [Usage](#-cli-reference)
+- [Module Catalogue](#-module-catalogue)
+- [Architecture](#-architecture)
+- [Output](#-output-hierarchy)
+- [Test Suite](#-test-suite)
+- [Module API](#-module-api)
+- [Behind the Scenes](#-behind-the-scenes)
+- [Contributing](#-contributing)
+
+---
+
+## 🚀 Quick Start
 
 ```bash
+# 1. Install
 git clone https://github.com/id7eng/StegoForge.git
-cd StegoForge
-chmod +x install.sh && ./install.sh
+cd StegoForge && chmod +x install.sh && ./install.sh
+
+# 2. Scan a file
+stegoforge suspicious.png
+
+# 3. Full analysis
+stegoforge -v unknown.bin --readonly
+
+# 4. Scan entire challenge directory
+stegoforge -r ~/ctf_challenges/ --summary
 ```
 
-**No root?** All dependencies gracefully degrade — modules skip automatically if their tools are missing.
+> **No root?** No problem — every module degrades gracefully. Missing tools are auto-skipped. Run `stegoforge --doctor` to see what's available.
 
 ---
 
-## Flags & CLI Reference
+## 🎯 Features
 
-| Flag | Description |
-|------|-------------|
-| `stegoforge <file>` | Default — show flag / partial flag only |
-| `-v` | Full verbose analysis with all module output |
-| `-w <wordlist>` | Supply custom password list for brute-force modules |
-| `-r <dir>` | Scan directory recursively (summary output by default) |
-| `--json` | Structured JSON output `{"file":"...", "flags":[...], "status":"..."}` |
-| `--summary` | One-liner `file → flag` per file |
-| `--readonly` | Operate on a copy in `/tmp` — original never touched |
-| `--list` | Enumerate all 44 registered modules |
-| `--doctor` | Comprehensive dependency health check |
-| `--version` | Display version & exit |
-
----
-
-## Architecture
-
-```
-                     ┌─────────────────┐
-                     │   stegoforge    │
-                     │   (entry point) │
-                     └────────┬────────┘
-                              │
-                     ┌────────▼────────┐
-                     │   engine.sh     │
-                     │  (workflow)     │
-                     └────────┬────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-     ┌────────▼───┐  ┌───────▼──────┐  ┌─────▼─────┐
-     │  Repair /  │  │   Priority   │  │  Feature  │
-     │  Polyglot  │  │  Scheduler   │  │  Modules  │
-     │  Fixer     │  │              │  │  (44)     │
-     └────────────┘  └──────────────┘  └───────────┘
-```
-
-### How the Workflow Engine Works
-
-1. **Repair Phase** — `MD_PRIORITY=1-2`: Fix corrupted headers, detect polyglot files
-2. **Preparation** — `MD_PRIORITY=5`: Smart Wordlist generates context-aware passwords
-3. **Analysis** — `MD_PRIORITY=7-90`: All modules execute in priority order
-4. **Re-analysis** — If Repair modifies the file, it loops back for a second pass
-5. **Reporting** — Collect all `emit()` events, filter flags, generate output
-
-Modules communicate via **events** (`emit "flag" "..."`) and **triggers** — when one module discovers data, others can process it automatically.
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🔍 Smart Analysis</h3>
+      <ul>
+        <li><strong>Polyglot Detection</strong> — Catches files with mismatched magic bytes vs extension, fixes headers, strips appended garbage, saves clean copy to <code>~/Downloads/</code></li>
+        <li><strong>Auto-Repair</strong> — Fixes broken PNG IHDR CRCs, JPEG SOI markers, missing magic bytes</li>
+        <li><strong>Re-Analysis Loop</strong> — After repair, the engine automatically re-scans the fixed file</li>
+        <li><strong>Partial Flag Detection</strong> — Catches fragments and tails when full patterns don't match</li>
+        <li><strong>OCR Auto-Scale</strong> — Auto-upscales tiny images before Tesseract for better recognition</li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>⚙️ Workflow Engine</h3>
+      <ul>
+        <li><strong>Event System</strong> — Modules <code>emit()</code> findings, others subscribed via <code>MD_TRIGGERS</code> react automatically</li>
+        <li><strong>Priority Dispatch</strong> — All 44 modules execute in strict priority order, zero conflicts</li>
+        <li><strong>Smart Wordlist</strong> — Priority 5 module parses metadata + strings + filename to build targeted passwords for Steghide, StegSeek, ZIP Brute</li>
+        <li><strong>Gzip Auto-Decompress</strong> — Detects and decompresses gzip'd files before analysis</li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <h3>📊 Output Formats</h3>
+      <ul>
+        <li><strong>Default</strong> — Clean flag/partial-flag display</li>
+        <li><strong><code>-v</code></strong> — Verbose per-module forensic report</li>
+        <li><strong><code>--summary</code></strong> — <code>file → flag</code> one-liner (ideal for <code>-r</code>)</li>
+        <li><strong><code>--json</code></strong> — Machine-readable: <code>{"file":"...", "flags":[...], "status":"found|partial|empty"}</code></li>
+      </ul>
+    </td>
+    <td width="50%">
+      <h3>🛡 Security & Reliability</h3>
+      <ul>
+        <li><strong>Read-Only Mode</strong> — <code>--readonly</code> copies to <code>/tmp</code>, original never touched</li>
+        <li><strong>Python Injection Protection</strong> — All file paths use env vars, not string interpolation</li>
+        <li><strong>No Pipe Subshells</strong> — Every <code>while read</code> uses <code>done < <(cmd)</code> — no silent data loss</li>
+        <li><strong>Graceful Degradation</strong> — Missing deps? Module auto-skips, no crashes</li>
+        <li><strong>Null-Byte Safety</strong> — <code>LC_ALL=C</code> + <code>tr -d '\0'</code> throughout</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Module Catalogue — 44 Modules
+## 📖 CLI Reference
 
-### 🛠 Universal (every file type)
+| Command | Description |
+|---------|-------------|
+| `stegoforge <file>` | Flag / partial flag only |
+| `-v` | Full verbose analysis |
+| `-w <wordlist>` | Custom password list for brute-force |
+| `-r <dir>` | Recursive directory scan |
+| `--json` | Structured JSON output |
+| `--summary` | One-liner `file → flag` |
+| `--readonly` | Operate on a copy |
+| `--list` | Enumerate all 44 modules |
+| `--doctor` | Dependency health check |
+| `--version` | Display version |
+
+---
+
+## 📦 Module Catalogue
+
+<details open>
+<summary><b>🛠 Universal — 16 modules (every file type)</b></summary>
 
 | Pri | Module | Description |
 |-----|--------|-------------|
 | 1 | **Repair** | Fix corrupted magic bytes, PNG IHDR CRC, JPEG headers |
-| 2 | **Polyglot Fixer** | Detect magic-byte mismatch → fix header → strip trailing data → save to `~/Downloads/` |
-| 5 | **Smart Wordlist** | Generate context-aware passwords from metadata, strings, filename |
-| 7 | **Binary Digits** | Decode ASCII `0`/`1` text into binary data |
-| 8 | **Base64 Full** | Decode base64 strings + hex-encoded base64 |
-| 10 | **Strings** | Keyword grep · auto base64/hex decode · flag pattern matching · partial flag tails |
-| 11 | **ROT Brute** | Brute-force ROT1–25 + Atbash cipher |
-| 16 | **EXIF Thumbnail** | Extract & analyze embedded EXIF thumbnails |
-| 22 | **OCR** | Tesseract OCR with auto-upscale + fuzzy flag matching |
-| 28 | **Append Data** | Detect data appended after IEND / FFD9 / EOF markers |
-| 50 | **PCAP Analysis** | Extract HTTP objects, DNS queries, TCP streams, IPv6, BPF filters |
-| 52 | **Disk Forensics** | Loop-mount FAT/NTFS/ext4 images, extract artifacts |
-| 60 | **Binwalk** | Detect & extract embedded files |
-| 70 | **Foremost** | File carving / recovery from raw images |
+| 2 | **Polyglot Fixer** | Detect magic-byte mismatch → fix, strip, save to `~/Downloads/` |
+| 5 | **Smart Wordlist** | Context-aware password generator |
+| 7 | **Binary Digits** | Decode ASCII `0`/`1` to binary |
+| 8 | **Base64 Full** | Base64 + hex-encoded base64 decode |
+| 10 | **Strings** | Keyword grep · auto base64/hex decode · flag + partial flag matching |
+| 11 | **ROT Brute** | ROT1–25 + Atbash cipher |
+| 16 | **EXIF Thumbnail** | Embedded EXIF thumbnail extraction |
+| 22 | **OCR** | Tesseract OCR with auto-upscale |
+| 28 | **Append Data** | Data after IEND / FFD9 / EOF markers |
+| 50 | **PCAP Analysis** | HTTP objects · DNS · TCP streams · IPv6 · BPF filters |
+| 52 | **Disk Forensics** | Loop-mount FAT/NTFS/ext4, extract artifacts |
+| 60 | **Binwalk** | Embedded file detection |
+| 70 | **Foremost** | File carving |
 | 80 | **XOR Brute** | Single-byte XOR key recovery (0x00–0xFF) |
-| 90 | **ADS Scan** | NTFS Alternate Data Stream enumeration |
+| 90 | **ADS Scan** | NTFS Alternate Data Streams |
 
-### 🖼 Image Analysis
+</details>
 
-| Pri | Module | Formats | Description |
-|-----|--------|---------|-------------|
-| 12 | **Video** | mp4, avi, mov, mkv, webm | Frame extraction, QR detection, frame accumulation, motion differencing |
-| 15 | **StegDetect** | jpg, jpeg | Identify embedding tool: jphide, outguess, jsteg, F5 |
-| 20 | **Metadata** | jpg, png, bmp, gif, tiff, webp | Exif/ID3/XMP extraction + acrostic line analysis |
-| 25 | **PNG CRC** | png | CRC integrity check + brute-force correct dimensions |
-| 30 | **Zsteg** | png, bmp | LSB steganography detection & extraction |
-| 35 | **QR Code** | jpg, jpeg, png, bmp, gif | QR/barcode scanning via pyzbar |
-| 36 | **Stepic** | png, bmp | LSB decode via stepic library |
-| 36 | **PDF Images** | pdf | Extract all embedded raster images |
-| 37 | **GIF Palette** | gif | Per-frame palette analysis for hidden data |
-| 38 | **PDF Analysis** | pdf | Multi-layer decompression, comment extraction, post-%%EOF data |
-| 39 | **StegSeek** | jpg, jpeg, bmp, wav | 100× faster steghide password cracking |
-| 40 | **Steghide** | jpg, jpeg, bmp, wav | Data extraction + password brute-force |
-| 42 | **OutGuess** | jpg, jpeg | Extract data from OutGuess-embedded JPEGs |
-| 43 | **JPHide** | jpg, jpeg | Data extraction + brute-force |
-| 44 | **F5** | jpg, jpeg | Extract data from F5-embedded JPEGs |
-| 45 | **Bit Plane** | png, bmp | Extract bit planes 0–7 as individual PNGs |
-| 46 | **JPEG DQT** | jpg, jpeg | LSB extraction from unused quantization tables |
-| 47 | **Binary Border** | jpg, png, bmp, gif | Read border pixels clockwise as binary data |
-| 49 | **FFT Domain** | jpg, png, bmp, gif | Frequency domain analysis for hidden patterns |
-
-### 🎵 Audio Analysis
+<details open>
+<summary><b>🖼 Image Analysis — 18 modules</b></summary>
 
 | Pri | Module | Formats | Description |
 |-----|--------|---------|-------------|
-| 48 | **MP3Stego** | mp3 | Extract hidden data from MP3Stego-encoded files |
-| 50 | **Spectrogram** | wav, au, mp3 | Generate frequency spectrogram images |
-| 51 | **Audio Reverse** | wav, mp3, au | Reverse audio stream + flag keyword search |
-| 52 | **SSTV** | wav | Decode SSTV (slow-scan television) images |
-| 53 | **DTMF** | wav | Decode DTMF telephone tones via multimon-ng |
+| 12 | **Video** | mp4, avi, mov, mkv, webm | Frame extraction, QR, accumulation, differencing |
+| 15 | **StegDetect** | jpg, jpeg | Identify embedding tool |
+| 20 | **Metadata** | jpg, png, bmp, gif, tiff, webp | Exif/ID3/XMP + acrostic analysis |
+| 25 | **PNG CRC** | png | CRC check + brute-force dimensions |
+| 30 | **Zsteg** | png, bmp | LSB detection |
+| 35 | **QR** | jpg, jpeg, png, bmp, gif | QR/barcode scanning |
+| 36 | **Stepic** | png, bmp | LSB decode (stepic) |
+| 36 | **PDF Images** | pdf | Embedded raster image extraction |
+| 37 | **GIF Palette** | gif | Per-frame palette analysis |
+| 38 | **PDF Analysis** | pdf | Decompression, comments, post-%%EOF data |
+| 39 | **StegSeek** | jpg, jpeg, bmp, wav | 100× faster steghide cracking |
+| 40 | **Steghide** | jpg, jpeg, bmp, wav | Data extraction + brute-force |
+| 42 | **OutGuess** | jpg, jpeg | OutGuess data extraction |
+| 43 | **JPHide** | jpg, jpeg | JPHide data extraction |
+| 44 | **F5** | jpg, jpeg | F5 data extraction |
+| 45 | **Bit Plane** | png, bmp | Bit planes 0–7 as PNGs |
+| 46 | **JPEG DQT** | jpg, jpeg | LSB from unused quantization tables |
+| 47 | **Binary Border** | jpg, png, bmp, gif | Clockwise border pixel reading |
+| 49 | **FFT Domain** | jpg, png, bmp, gif | Frequency domain analysis |
 
-### 📄 Documents & Text
+</details>
+
+<details open>
+<summary><b>🎵 Audio Analysis — 5 modules</b></summary>
 
 | Pri | Module | Formats | Description |
 |-----|--------|---------|-------------|
-| 32 | **Snow** | txt, html, css, js | Whitespace steganography decoder |
-| 33 | **Zero Width** | txt, html, css, js | Detect zero-width Unicode character injection |
-| 34 | **OleVBA** | doc, docx, xls, xlsx, ppt, pptx | Office macro analysis & VBA extraction |
+| 48 | **MP3Stego** | mp3 | MP3Stego extraction |
+| 50 | **Spectrogram** | wav, au, mp3 | Spectrogram image generation |
+| 51 | **Audio Reverse** | wav, mp3, au | Reverse + flag search |
+| 52 | **SSTV** | wav | Slow-scan television decode |
+| 53 | **DTMF** | wav | DTMF tone decode (multimon-ng) |
 
-### 📦 Archives
+</details>
+
+<details open>
+<summary><b>📄 Documents & Text — 3 modules</b></summary>
 
 | Pri | Module | Formats | Description |
 |-----|--------|---------|-------------|
-| 55 | **ZIP Brute** | zip | Crack password-protected ZIPs (fcrackzip primary + unzip fallback) |
+| 32 | **Snow** | txt, html, css, js | Whitespace steganography |
+| 33 | **Zero Width** | txt, html, css, js | Zero-width Unicode detection |
+| 34 | **OleVBA** | doc, docx, xls, xlsx, ppt, pptx | Office macro analysis |
+
+</details>
+
+<details open>
+<summary><b>📦 Archives — 1 module</b></summary>
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 55 | **ZIP Brute** | zip | Password cracking (fcrackzip + unzip fallback) |
+
+</details>
 
 ---
 
-## Features
+## 🏗 Architecture
 
-### 🔍 Smart Analysis
-- **Polyglot Detection** — Identifies files with mismatched magic bytes ↔ extension; automatically fixes headers, strips appended junk, and saves a clean copy
-- **Auto-Repair** — Fixes corrupted PNG IHDR CRCs, JPEG SOI markers, missing magic bytes
-- **Re-Analysis Loop** — After repair, the file is automatically re-scanned by all modules
-- **Partial Flag Detection** — When full flag patterns fail (e.g. digit-starting tails), fragments and tails are captured as fallback
-
-### ⚙️ Workflow Engine
-- **Event System** — Modules `emit()` findings; other modules subscribed via `MD_TRIGGERS` receive them
-- **Priority Dispatch** — All 44 modules run in strict `MD_PRIORITY` order, no conflicts
-- **Smart Wordlist** — Priority 5 module parses file metadata, strings, and filename to build a targeted password list used by Steghide, StegSeek, and ZIP Brute
-
-### 📊 Output Formats
-- **Default** — Clean flag/partial-flag display
-- **`--verbose`** — Full per-module forensic report  
-- **`--summary`** — One-liner per file (ideal for recursive `-r` scans)
-- **`--json`** — Machine-readable: `{"file":"...", "flags":["..."], "partial_flags":["..."], "status":"found|partial|empty"}`
-
-### 🛡 Security & Reliability
-- **Read-Only Mode** — `--readonly` copies file to `/tmp` before any modification; original is never touched
-- **Python Injection Protection** — All file paths passed to `python3 -c` use environment variables, eliminating code injection via malicious filenames
-- **No Pipe Subshells** — Every `while read` loop uses process substitution `done < <(cmd)` — no lost data, no silent failures
-- **Graceful Degradation** — Missing dependency? Module silently skips with a single `[SKIP]` line in verbose mode
-- **Null-Byte Safety** — `LC_ALL=C strings` + `tr -d '\0'` throughout to suppress bash null-byte warnings
-
----
-
-## Dependencies
-
-```bash
-# ── Core (strongly recommended) ──
-apt install file xxd binwalk foremost steghide exiftool \
-  ffmpeg sox tesseract-ocr python3-pip python3-pil
-
-# ── Optional (auto-detected, skip if missing) ──
-pip install stepic scipy matplotlib
-gem install zsteg
-apt install fcrackzip stegseek stegdetect outguess jpseek \
-  multimon-ng mp3stego poppler-utils olevba snow p7zip-full
+```
+                        ┌─────────────────┐
+                        │   stegoforge    │
+                        │   (entry point) │
+                        └────────┬────────┘
+                                 │
+                        ┌────────▼────────┐
+                        │   engine.sh     │
+                        │  (workflow)     │
+                        └────────┬────────┘
+                                 │
+                 ┌───────────────┼───────────────┐
+                 │               │               │
+        ┌────────▼───┐  ┌───────▼──────┐  ┌─────▼─────┐
+        │  Repair /  │  │   Priority   │  │  Feature  │
+        │  Polyglot  │  │  Scheduler   │  │  Modules  │
+        │  Fixer     │  │              │  │  (44)     │
+        └────────────┘  └──────────────┘  └───────────┘
 ```
 
-Run `stegoforge --doctor` to see which are available on your system.
+### How the Pipeline Works
+
+```
+Input File
+    │
+    ▼
+┌────────────────────────────────────────────────────┐
+│  1. Repair Phase (priority 1-2)                    │
+│     → Fix corrupted headers                        │
+│     → Detect polyglot (mismatched magic bytes)     │
+│     → Save fixed copy to ~/Downloads/              │
+└────────────────────┬───────────────────────────────┘
+                     │ (if file was modified)
+                     ▼
+┌────────────────────────────────────────────────────┐
+│  2. Preparation (priority 5)                       │
+│     → Smart Wordlist extracts context passwords    │
+│     → Gzip auto-decompress if needed               │
+└────────────────────┬───────────────────────────────┘
+                     ▼
+┌────────────────────────────────────────────────────┐
+│  3. Analysis Phase (priority 7-90)                 │
+│     → 44 modules execute in strict order           │
+│     → Each module calls emit() for findings        │
+│     → Modules react to each other via triggers     │
+└────────────────────┬───────────────────────────────┘
+                     ▼
+┌────────────────────────────────────────────────────┐
+│  4. Reporting                                      │
+│     → Collect all flags, partial flags, artifacts  │
+│     → Output format (default/json/summary)         │
+└────────────────────────────────────────────────────┘
+```
 
 ---
 
-## Output Hierarchy
+## 📁 Output Hierarchy
 
 ```
 ~/Downloads/
-└── <file>.png / .jpg / .gif     ← Polyglot Fixer output (ready to open)
+└── <file>.png / .jpg / .gif     ← Polyglot Fixer: clean, openable files
 
 output/sessions/<pid>/
-├── carved/                       ← Extracted files (frames, wordlists, decoded payloads)
+├── carved/                       ← Extracted payloads, frames, wordlists
 ├── bitplanes/                    ← Bit plane images (planes 0–7)
-├── spectrograms/                 ← Spectrogram images from audio modules
-├── repaired/                     ← Repaired files (from Repair module + polyglot copy)
-└── reports/                      ← (future: HTML/PDF forensic reports)
+├── spectrograms/                 ← Audio spectrogram images
+├── repaired/                     ← Repair module output
+└── reports/                      ← (coming soon: HTML/PDF forensic reports)
 ```
 
 ---
 
-## Module API — Write Your Own
+## 🧪 Test Suite
 
-Adding a module takes 60 seconds. Drop a file in `modules/` with this template:
+```bash
+./tests/run_tests.sh
+```
+
+| Status | Count | Details |
+|--------|-------|---------|
+| ✅ **Passing** | **22** | All core modules verified |
+| ❌ **Failing** | **0** | — |
+| ⏭️ **Skipped** | **3** | QR (pyzbar), PDF images (reportlab), Disk forensics (mount) |
+| **Total** | **28** | |
+
+---
+
+## 🔌 Module API — Write Your Own in 60 Seconds
 
 ```bash
 MD_NAME="MyModule"
@@ -234,49 +328,101 @@ MD_TRIGGERS="repair polyglot_fixed"
 
 analyze_mymodule() {
     local f="$1" wl="$2"
-    # Analyze $f, call emit() for findings
     emit "my_data" "Found something interesting: $data"
 }
 ```
 
-**Variables available:** `$f` (file path), `$wl` (wordlist), `$OUTDIR` (session output directory), `$FLAG_PATTERNS` (array of regexes), `$SMART_WL` (global smart wordlist).
+**Available variables:**
+| Variable | Description |
+|----------|-------------|
+| `$f` | Path to file being analyzed |
+| `$wl` | Wordlist path (from `-w` flag or Smart Wordlist) |
+| `$OUTDIR` | Session output directory (`output/sessions/<pid>/`) |
+| `$FLAG_PATTERNS` | Array of flag regex patterns from `config/flag_patterns.conf` |
+| `$SMART_WL` | Global smart wordlist (populated by priority 5 module) |
+| `$VERBOSE` | `true` if `-v` flag was passed |
 
 ---
 
-## Test Suite
+## 🔬 Behind the Scenes
+
+<details>
+<summary><b>Security decisions that shaped this project</b></summary>
+
+<br>
+
+| Decision | Rationale |
+|----------|-----------|
+| **No `python3 -c` string interpolation** | All file paths passed via environment variables (`PYTHON_FILE`, `BITPLANE_FILE`, etc.) — prevents code injection from filenames containing quotes or backticks |
+| **No pipe subshells** | `cmd \| while read` silently loses all variable assignments and `emit()` calls — every loop uses `done < <(cmd)` instead |
+| **`LC_ALL=C` + `tr -d '\0'`** | Suppresses bash "null byte" warnings in every `strings` call across all modules |
+| **Read-only mode by default** | The `--readonly` flag copies input to `/tmp` — the original file is never modified unless explicitly allowed |
+| **Graceful degradation** | Every module checks dependencies at runtime; missing tools = one `[SKIP]` line, not a crash |
+
+</details>
+
+<details>
+<summary><b>Edge cases handled</b></summary>
+
+<br>
+
+| Scenario | How it's handled |
+|----------|-----------------|
+| **Polyglot PNG+PDF** | Polyglot Fixer detects magic-byte mismatch, strips trailing data, saves to `~/Downloads/<file>.<correct_ext>` |
+| **Corrupted magic bytes** | Repair module iterates known magic byte patterns, prepends missing bytes, triggers re-analysis |
+| **Flag tails (e.g. `1n_pn9_&_pdf}`)** | Don't match standard patterns (digit-starting) — caught by `partial_flag` / `Tail` fallback |
+| **ZIP with unknown password** | `fcrackzip` first (100× faster), falls back to `unzip` loop if not available |
+| **OCR on tiny images** | Auto-upscales images <200px before passing to Tesseract |
+| **Large files (>10MB)** | Smart Wordlist and Bit Plane skip large files to prevent hanging |
+| **Gzip-compressed files** | Engine auto-detects gzip magic bytes, decompresses before analysis |
+| **Binary `0`/`1` text files** | Binary Digits module detects all-0/1 content, reconstructs original binary |
+| **NTFS Alternate Data Streams** | ADS Scan module enumerates streams on any mounted filesystem |
+
+</details>
+
+---
+
+## 👥 Contributing
+
+Contributions are welcome! Here's how:
+
+1. **Add a module** — Use the [Module API](#-module-api—write-your-own-in-60-seconds) template
+2. **Report a bug** — Open an [issue](https://github.com/id7eng/StegoForge/issues)
+3. **Submit a PR** — Fork, branch, commit, push
+
+### Development
 
 ```bash
+# Run tests
 ./tests/run_tests.sh
+
+# Check syntax of all modules
+for f in modules/*.sh; do bash -n "$f" || echo "SYNTAX ERROR: $f"; done
+
+# Check dependencies
+./stegoforge --doctor
 ```
 
-| Metric | Value |
-|--------|-------|
-| Total Tests | **28** |
-| ✅ Passing | **22** |
-| ❌ Failing | **0** |
-| ⏭️ Skipped | **3** (QR/pyzbar · PDF images/reportlab · Disk forensics/mount — optional deps) |
+### Coding Standards
+
+- All modules: `set -euo pipefail` within function scope (not globally — breaks graceful degradation)
+- No `eval` anywhere
+- No inline `python3 -c` with string-interpolated file paths — use env vars
+- No `cmd | while read` — use `done < <(cmd)` instead
+- Flag output via `emit "flag" "..."`, not `echo`
 
 ---
 
-## Behind the Scenes
+## 📜 License
 
-- **Default output** shows only the flag or best partial match — use `-v` for the full forensic report
-- **Polyglot fixer** saves repaired files to `~/Downloads/<file>.<correct_ext>` — you open it manually to see the flag
-- **Smart wordlist (priority 5)** feeds all brute-force modules: Steghide, StegSeek, ZIP Brute
-- **Repair module** sets `ANALYZE_THIS=1` to trigger a complete re-analysis pass on the fixed file
-- **Flag patterns** (`picoCTF{}`, `HTB{}`, `THM{}`, `NCSE{}`, any `prefix{...}`) are defined in `config/flag_patterns.conf` — easy to extend
-- **Flag tails** (fragments starting with a digit like `1n_pn9_&_pdf}`) don't match standard patterns — caught by the partial/tail fallback detector
-- **Security**: No `python3 -c` uses string interpolation for filenames; all paths go through environment variables
-- **Portability**: All `while read` loops use `done < <(cmd)` — never `cmd | while read` (pipe subshells drop all variables and `emit()` calls)
-
----
-
-## License
-
-**MIT** — Use it, modify it, ship it. No strings attached.
+**MIT** — Do whatever you want. Credit appreciated, not required.
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ for the CTF community · <a href="https://github.com/id7eng/StegoForge">github.com/id7eng/StegoForge</a></sub>
+  <a href="https://github.com/id7eng/StegoForge">GitHub</a> ·
+  <a href="https://github.com/id7eng/StegoForge/issues">Issues</a> ·
+  <a href="https://github.com/id7eng/StegoForge/releases">Releases</a>
+  <br><br>
+  <sub>Built for the CTF community · No AI · No Payments · Just tools</sub>
 </p>
