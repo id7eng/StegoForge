@@ -1,0 +1,8 @@
+.git
+output
+samples
+tests
+*.md
+*.gif
+*.png
+*.jpg

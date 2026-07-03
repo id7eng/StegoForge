@@ -12,9 +12,10 @@ source "${CORE_DIR}/logger.sh"
 source "${CORE_DIR}/utils.sh"
 source "${CORE_DIR}/flags.sh"
 source "${CORE_DIR}/dependency.sh"
+source "${CORE_DIR}/docker.sh"
 
-VERSION="1.3.2"
-QUIET=true
+VERSION="1.3.4"
+QUIET=true; DOCKER_MODE=false
 OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false; SUMMARY=false; READONLY=false
 REPORT_FILE=""; TARGET=""; WORDLIST=""
 FINDINGS=()
@@ -293,6 +294,7 @@ main() {
             --json) JSON=true; QUIET=true; shift ;;
             --summary) SUMMARY=true; QUIET=true; shift ;;
             --readonly) READONLY=true; shift ;;
+            --docker) DOCKER_MODE=true; shift ;;
             -o|--output) OUTDIR="$2"; shift 2 ;;
             -w|--wordlist) WORDLIST="$2"; shift 2 ;;
             -l|--list) list_modules ;;
@@ -304,6 +306,20 @@ main() {
 
     [ -z "$TARGET" ] && usage
     [ ! -e "$TARGET" ] && err "Path not found: $TARGET" && exit 1
+
+    # Auto-docker: if --docker or native tools missing, run inside container
+    if $DOCKER_MODE || ! docker_native_ok; then
+        if ! docker_check; then
+            err "Docker not installed. Install Docker or use native mode."
+            exit 1
+        fi
+        if ! docker_image_exists; then
+            docker_build "$TOOL_DIR" || { err "Docker build failed"; exit 1; }
+        fi
+        $QUIET || info "Running in Docker mode"
+        docker_run_analyze "$TARGET" "$@" --outdir /output
+        exit $?
+    fi
 
     [ -z "$OUTDIR" ] && OUTDIR="${OUTPUT_DIR}/sessions/$$"
     mkdir -p "$OUTDIR" "${OUTDIR}/carved" "${OUTDIR}/bitplanes" "${OUTDIR}/spectrograms" "${OUTDIR}/repaired" "${OUTDIR}/reports"

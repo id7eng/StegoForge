@@ -20,6 +20,7 @@ usage() {
     echo -e "     --json           JSON output"
     echo -e "     --summary        Summary output (file → flag)"
     echo -e "     --readonly       Don't modify original files"
+    echo -e "     --docker         Force Docker mode (auto-fallback if tools missing)"
     echo -e "     --doctor         Check dependencies"
     echo -e "  -h, --help          Show help"
     echo ""
