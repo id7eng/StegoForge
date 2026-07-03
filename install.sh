@@ -12,8 +12,11 @@ done
 
 echo ""
 echo "[*] Optional tools:"
-for dep in exiftool binwalk foremost steghide zsteg fcrackzip getfattr; do
+for dep in exiftool binwalk foremost steghide zsteg fcrackzip pngcheck getfattr; do
     command -v "$dep" &>/dev/null && echo "  [OK] $dep" || echo "  [--] $dep"
+done
+for dep in convert identify; do
+    command -v "$dep" &>/dev/null && echo "  [OK] $dep (ImageMagick)" || echo "  [--] $dep"
 done
 
 echo ""

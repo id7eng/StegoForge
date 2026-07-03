@@ -5,7 +5,7 @@ doctor() {
     echo ""
 
     local core_deps=("bash" "file" "xxd" "strings" "md5sum" "sha256sum")
-    local opt_deps=("exiftool" "binwalk" "foremost" "steghide" "zsteg" "fcrackzip" "getfattr")
+    local opt_deps=("exiftool" "binwalk" "foremost" "steghide" "zsteg" "fcrackzip" "pngcheck" "getfattr")
     local py_deps=("python3")
 
     echo -e "${BOLD}Core Required:${N}"
@@ -34,9 +34,12 @@ doctor() {
                 zsteg)    echo -e "     ${DIM}gem install zsteg${N}" ;;
                 fcrackzip) echo -e "     ${DIM}apt install fcrackzip${N}" ;;
                 getfattr) echo -e "     ${DIM}apt install getfattr${N}" ;;
+                pngcheck) echo -e "     ${DIM}apt install pngcheck${N}" ;;
             esac
         fi
     done
+    command -v convert &>/dev/null && echo -e "  ${G}[OK]${N} convert (ImageMagick)" || echo -e "  ${Y}[--]${N} convert (apt install imagemagick)"
+    command -v identify &>/dev/null && echo -e "  ${G}[OK]${N} identify (ImageMagick)" || echo -e "  ${Y}[--]${N} identify (apt install imagemagick)"
 
     echo ""
     echo -e "${BOLD}Python Modules:${N}"

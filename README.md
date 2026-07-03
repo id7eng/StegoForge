@@ -12,7 +12,7 @@
 
 **The All-in-One CTF Steganography & Forensics Arsenal**
 
-44 modules · 25+ formats · Smart workflow · Auto-detect · Auto-repair · No AI
+46 modules · 25+ formats · Smart workflow · Auto-detect · Auto-repair · No AI
 
 ```
 stegoforge image.png          →  flag / partial flag
@@ -46,7 +46,7 @@ stegoforge suspicious.png
 | | Partial Flag Detection | Catches flag fragments and tails when full patterns don't match |
 | | OCR Auto-Scale | Auto-upscales tiny images before Tesseract OCR |
 | **⚙️ Workflow Engine** | Event System | Modules `emit()` findings; others subscribed via `MD_TRIGGERS` react |
-| | Priority Dispatch | All 44 modules run in strict `MD_PRIORITY` order |
+| | Priority Dispatch | All 46 modules run in strict `MD_PRIORITY` order |
 | | Smart Wordlist | Parses metadata + strings + filename to build targeted passwords |
 | | Gzip Auto-Decompress | Auto-detects and decompresses gzip'd files |
 | **📊 Output** | Default | Clean flag / partial flag |
@@ -61,7 +61,7 @@ stegoforge suspicious.png
 
 ---
 
-## 44 Modules
+## 46 Modules
 
 ### Universal (every file type — 16)
 
@@ -84,13 +84,15 @@ stegoforge suspicious.png
 | 80 | XOR Brute | Single-byte XOR key recovery (0x00–0xFF) |
 | 90 | ADS Scan | NTFS Alternate Data Stream enumeration |
 
-### Image Analysis (18)
+### Image Analysis (20)
 
 | Pri | Module | Formats | Description |
 |-----|--------|---------|-------------|
 | 12 | Video | mp4, avi, mov, mkv, webm | Frame extraction, QR, accumulation, differencing |
+| 14 | ImageMagick | jpg, png, bmp, gif, tiff, webp | Image properties, channel stats, metadata (identify) |
 | 15 | StegDetect | jpg, jpeg | Identify embedding tool (jphide, outguess, jsteg, F5) |
 | 20 | Metadata | jpg, png, bmp, gif, tiff, webp | Exif/ID3/XMP + acrostic analysis |
+| 23 | PNG Check | png | Chunk-level validation, detect private/unknown chunks (pngcheck) |
 | 25 | PNG CRC | png | CRC check + brute-force correct dimensions |
 | 30 | Zsteg | png, bmp | LSB steganography detection |
 | 35 | QR | jpg, jpeg, png, bmp, gif | QR / barcode scanning |
@@ -158,7 +160,7 @@ stegoforge suspicious.png
 **Pipeline:**
 1. **Repair** (pri 1-2): Fix headers, detect polyglot, save fixed copy
 2. **Prep** (pri 5): Smart wordlist, gzip decompress
-3. **Analyze** (pri 7-90): 44 modules run in priority order, emit events
+3. **Analyze** (pri 7-90): 46 modules run in priority order, emit events
 4. **Report**: Collect flags, output as default/json/summary
 
 ---
