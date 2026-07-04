@@ -3,3 +3,4 @@ output/
 *.crc_fixed
 __pycache__/
 *.pyc
+knowledge.db

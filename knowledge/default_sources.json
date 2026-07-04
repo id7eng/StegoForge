@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "name": "CTFtime Writeups",
+      "type": "ctftime",
+      "url": "https://ctftime.org/writeups",
+      "interval": 86400,
+      "enabled": false,
+      "description": "CTFtime.org writeup archive"
+    },
+    {
+      "name": "Medium CTF Writeups",
+      "type": "rss",
+      "url": "https://medium.com/feed/tag/ctf",
+      "interval": 86400,
+      "enabled": false,
+      "description": "Medium articles tagged with CTF"
+    },
+    {
+      "name": "Medium Steganography",
+      "type": "rss",
+      "url": "https://medium.com/feed/tag/steganography",
+      "interval": 86400,
+      "enabled": false,
+      "description": "Medium articles tagged with steganography"
+    },
+    {
+      "name": "Medium Forensics",
+      "type": "rss",
+      "url": "https://medium.com/feed/tag/forensics",
+      "interval": 86400,
+      "enabled": false,
+      "description": "Medium articles tagged with forensics"
+    },
+    {
+      "name": "CTF Writeups Repo (GitHub)",
+      "type": "github",
+      "url": "https://github.com/ctf-writeups/ctf-writeups.github.io",
+      "interval": 86400,
+      "enabled": false,
+      "description": "CTF writeups collection from CTFtime"
+    },
+    {
+      "name": "RITSEC CTF Writeups",
+      "type": "github",
+      "url": "https://github.com/RIT-CTF/ctf-writeups",
+      "interval": 86400,
+      "enabled": false,
+      "description": "RITSEC CTF writeup repository"
+    }
+  ]
+}
