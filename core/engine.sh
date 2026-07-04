@@ -135,6 +135,7 @@ run_workflow() {
             for ev in "${EMITTED[@]}"; do
                 local ev_type="${ev%%:*}"
                 for n in "${run_queue[@]}"; do
+                    [ -z "$n" ] && continue
                     local triggers="${MODULE_TRIGGERS[$n]:-}"
                     if [[ " $triggers " =~ " $ev_type " ]]; then
                         [[ " ${run_done[@]} " =~ " $n " ]] && continue
