@@ -5,5 +5,14 @@ while [ -h "$SOURCE" ]; do
     SOURCE="$(readlink "$SOURCE")"
 done
 TOOL_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+
+# Knowledge Base subcommand
+if [ "$1" = "knowledge" ]; then
+    shift
+    source "${TOOL_DIR}/knowledge/kbe.sh"
+    kbe_main "$@"
+    exit $?
+fi
+
 source "${TOOL_DIR}/core/engine.sh"
 main "$@"

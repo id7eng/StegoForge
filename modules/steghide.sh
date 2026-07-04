@@ -41,7 +41,9 @@ analyze_steghide() {
     fi
 
     info "Brute-forcing with wordlist..."
-    while IFS= read -r p; do
+    while IFS= read -r raw; do
+        [ -z "$raw" ] && continue
+        local p="${raw##* }"
         [ -z "$p" ] && continue
         steghide extract -sf "$f" -p "$p" -xf "$extract_out" -f >/dev/null 2>&1
         if [ -f "$extract_out" ]; then

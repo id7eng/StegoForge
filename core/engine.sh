@@ -15,6 +15,9 @@ source "${CORE_DIR}/dependency.sh"
 source "${CORE_DIR}/docker.sh"
 source "${CORE_DIR}/priority.sh"
 
+# Knowledge Base integration
+KNOWLEDGE_DIR="${TOOL_DIR}/knowledge"
+
 VERSION="1.3.4"
 QUIET=true; DOCKER_MODE=false
 OUTDIR=""; RECURSIVE=false; VERBOSE=false; JSON=false; SUMMARY=false; READONLY=false
@@ -166,7 +169,17 @@ analyze_file() {
     # Priority boosting based on file type
     local ftype_first=$(echo "$ftype_raw" | awk '{print tolower($1)}')
     get_priority_boosted_modules "$ftype_first"
-    # Re-sort priority order after boosting
+
+    # ─── Knowledge Base Integration ───
+    if [ -f "${KNOWLEDGE_DIR}/knowledge.db" ]; then
+        source "${KNOWLEDGE_DIR}/db.sh" 2>/dev/null
+        source "${KNOWLEDGE_DIR}/inference.sh" 2>/dev/null
+        inference_init 2>/dev/null
+        $VERBOSE && db_log "KB" "Knowledge base found, adjusting priorities..."
+        inference_boost_priorities "$ftype_raw" 2>/dev/null
+    fi
+
+    # Re-sort priority order after all boosting
     MODULE_PRIORITY_ORDER=($(
         for name in "${MODULE_NAMES[@]}"; do
             echo "${MODULE_PRIORITY[$name]:-50}:$name"
@@ -191,6 +204,19 @@ analyze_file() {
     echo "  MD5:    $(md5sum "$f" | cut -d' ' -f1)"
     echo "  SHA256: $(sha256sum "$f" | cut -d' ' -f1)"
     echo "  Size:   $(numfmt --to=iec $(( $(stat -c%s "$f" 2>/dev/null) )) 2>/dev/null || du -h "$f" | cut -f1)"
+
+    # Show knowledge-based suggestions
+    if [ -f "${KNOWLEDGE_DIR}/knowledge.db" ]; then
+        local kb_suggestions=$(inference_analyze "$f" "$ftype_raw" 2>/dev/null)
+        local kb_reasoning=$(echo "$kb_suggestions" | grep "^REASONING:" | sed 's/^REASONING://')
+        if [ -n "$kb_reasoning" ] && $VERBOSE; then
+            echo ""
+            echo -e "${BOLD}📚 Knowledge Base Suggestions:${N}"
+            echo "$kb_reasoning"
+        fi
+        # Copy evidence file to output
+        [ -f "${OUTDIR}/.kb_evidence" ] && cp "${OUTDIR}/.kb_evidence" "${OUTDIR}/reports/kb_evidence.log" 2>/dev/null
+    fi
 
     run_workflow "$f" "$wl"
 
