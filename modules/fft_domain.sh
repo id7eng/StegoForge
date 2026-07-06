@@ -14,7 +14,7 @@ analyze_fft_domain() {
     export FFT_FILE="$f"
     while read line; do
         emit "fft_pattern" "FFT: $line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, sys
 try:
     import numpy as np
@@ -57,6 +57,6 @@ for i in range(0, len(phase_bits) - len(phase_bits) % 8, 8):
         chars += chr(c)
 if len(chars) > 3:
     print(f'Phase LSB: {chars}')
-" 2>/dev/null)
+")
     unset FFT_FILE
 }

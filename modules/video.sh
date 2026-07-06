@@ -13,7 +13,7 @@ analyze_video() {
     mkdir -p "$frame_dir"
 
     info "Extracting frames..."
-    ffmpeg -i "$f" -vf "fps=1" "${frame_dir}/frame_%04d.png" -loglevel quiet -y 2>/dev/null
+    run_cmd ffmpeg -i "$f" -vf "fps=1" "${frame_dir}/frame_%04d.png" -loglevel quiet -y
 
     local count=$(ls "${frame_dir}"/*.png 2>/dev/null | wc -l)
     [ "$count" -eq 0 ] && { info "No frames extracted"; return; }
@@ -21,7 +21,7 @@ analyze_video() {
 
     if command -v zbarimg &>/dev/null; then
         for frame in "${frame_dir}"/*.png; do
-            local qr=$(zbarimg --quiet "$frame" 2>/dev/null)
+            local qr=$(run_cmd zbarimg --quiet "$frame")
             [ -n "$qr" ] && emit "video_frame" "QR in $(basename $frame): $qr"
         done
     fi
@@ -36,7 +36,7 @@ analyze_video() {
     local outdir="${OUTDIR}"
     while read line; do
         info "$line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, sys
 try:
     import numpy as np
@@ -56,12 +56,12 @@ acc /= len(frames)
 acc_img = Image.fromarray(acc.astype(np.uint8))
 acc_img.save(os.environ['VIDEO_OUTDIR'] + '/carved/video_accumulated.png')
 print('Accumulated image saved (' + str(len(frames)) + ' frames)')
-" 2>/dev/null)
+")
     unset VIDEO_OUTDIR
 
     while read line; do
         info "$line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import sys, os
 try:
     import numpy as np
@@ -83,6 +83,6 @@ for f in frames[1:]:
         diff_img.save(os.path.join(os.environ['VIDEO_FRAME_DIR'], 'diff_' + os.path.basename(f)))
     prev = curr
 print('Frame differencing complete')
-" 2>/dev/null)
+")
     unset VIDEO_FRAME_DIR
 }

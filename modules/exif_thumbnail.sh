@@ -9,6 +9,7 @@ analyze_exif_thumbnail() {
     local f="$1"
     header "EXIF Thumbnail" "Thumbnail Image Extraction"
 
+    log_cmd_str "exiftool -b -ThumbnailImage \"$f\""
     local thumb_size=$(exiftool -b -ThumbnailImage "$f" 2>/dev/null | wc -c)
     [ "$thumb_size" -eq 0 ] && return
 

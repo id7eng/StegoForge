@@ -7,7 +7,7 @@ MD_PRODUCES="disk_partition disk_file flag"
 
 analyze_disk_forensics() {
     local f="$1"
-    local ftype=$(file -b "$f")
+    local ftype=$(run_cmd file -b "$f")
 
     if ! echo "$ftype" | grep -qiE "DOS/MBR boot sector|ISO 9660|filesystem|ext[234]|NTFS|FAT|x86 boot"; then
         return
@@ -20,6 +20,7 @@ analyze_disk_forensics() {
     mkdir -p "$disk_dir"
 
     # List partitions
+    log_cmd_str "mmls \"$f\" > \"$disk_dir/partitions.txt\""
     mmls "$f" 2>/dev/null > "$disk_dir/partitions.txt"
     if [ -s "$disk_dir/partitions.txt" ]; then
         emit "disk_partition" "Partition table: $disk_dir/partitions.txt"
@@ -29,10 +30,12 @@ analyze_disk_forensics() {
     while read offset; do
         [ -z "$offset" ] && continue
         info "Exploring partition at offset $offset"
+        log_cmd_str "fls -o \"$offset\" -r \"$f\" > \"$disk_dir/fls_offset_${offset}.txt\""
         fls -o "$offset" -r "$f" 2>/dev/null > "$disk_dir/fls_offset_${offset}.txt"
         while read inode name; do
             [ -z "$inode" ] && continue
             local lname=$(basename "$name" 2>/dev/null)
+            log_cmd_str "icat -o \"$offset\" \"$f\" \"$inode\" > \"$disk_dir/$lname\""
             icat -o "$offset" "$f" "$inode" > "$disk_dir/$lname" 2>/dev/null
             if [ -f "$disk_dir/$lname" ] && [ -s "$disk_dir/$lname" ]; then
                 info "Extracted: $lname (inode $inode)"
@@ -41,5 +44,6 @@ analyze_disk_forensics() {
                 run_workflow "$disk_dir/$lname"
             fi
         done < <(grep -iE 'flag|secret|key|password|\.txt$|\.jpg$|\.png$' "$disk_dir/fls_offset_${offset}.txt" 2>/dev/null | awk '{print $3, $NF}')
+    log_cmd_str "mmls \"$f\" | grep ... | awk ..."
     done < <(mmls "$f" 2>/dev/null | grep -E "Linux|NTFS|FAT" | awk '{print $4}')
 }

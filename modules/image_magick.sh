@@ -14,7 +14,7 @@ analyze_image_magick() {
         return
     fi
 
-    local info=$(identify -verbose "$f" 2>/dev/null)
+    local info=$(run_cmd identify -verbose "$f")
     [ -z "$info" ] && { info "identify failed"; return; }
 
     local dims=$(echo "$info" | grep -i 'Geometry:\|Page:' | head -1)

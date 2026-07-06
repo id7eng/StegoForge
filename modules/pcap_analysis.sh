@@ -7,7 +7,7 @@ MD_PRODUCES="pcap_object flag"
 
 analyze_pcap_analysis() {
     local f="$1"
-    local ftype=$(file -b --mime-type "$f" 2>/dev/null)
+    local ftype=$(run_cmd file -b --mime-type "$f")
 
     if [[ "$ftype" != "application/vnd.tcpdump.pcap" ]] && [[ "$ftype" != "application/x-pcapng" ]]; then
         [[ "$f" =~ \.(pcap|pcapng)$ ]] || return
@@ -21,7 +21,7 @@ analyze_pcap_analysis() {
     # HTTP objects
     local http_dir="$pcap_dir/http"
     mkdir -p "$http_dir"
-    tshark -r "$f" --export-objects "http,$http_dir" 2>/dev/null
+    run_cmd tshark -r "$f" --export-objects "http,$http_dir"
     for obj in "$http_dir"/*; do
         [ -f "$obj" ] || continue
         info "HTTP object: $(basename "$obj") ($(stat -c%s "$obj" 2>/dev/null) bytes)"
@@ -30,6 +30,7 @@ analyze_pcap_analysis() {
     done
 
     # Payload strings — capture to variable first to avoid pipe subshell
+    log_cmd_str "tshark -r \"$f\" -T fields -e data.text | tr -d '\0'"
     local payloads=$(tshark -r "$f" -T fields -e data.text 2>/dev/null | tr -d '\0')
     while IFS= read -r line; do
         [ -z "$line" ] && continue
@@ -54,5 +55,5 @@ analyze_pcap_analysis() {
             local match=$(echo "$domain" | grep -oP "$p" 2>/dev/null)
             [ -n "$match" ] && emit "flag" "$match"
         done
-    done < <(tshark -r "$f" -T fields -e dns.qry.name 2>/dev/null)
+    done < <(run_cmd tshark -r "$f" -T fields -e dns.qry.name)
 }

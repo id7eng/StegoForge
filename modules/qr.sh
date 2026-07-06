@@ -13,7 +13,7 @@ analyze_qr() {
         case "$line" in
             QR:*) emit "qr_data" "${line#QR:}" ;;
         esac
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os
 from PIL import Image
 try:
@@ -23,6 +23,6 @@ try:
         for c in codes: print('QR:' + c.data.decode())
     else: print('NONE')
 except: print('NONE')
-" 2>/dev/null)
+")
     unset QR_FILE
 }

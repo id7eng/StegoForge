@@ -36,6 +36,7 @@ img.save(os.environ['OCR_TMPIMG'])
 " 2>/dev/null
     unset OCR_FILE OCR_TMPIMG
 
+    log_cmd_str "tesseract \"$tmpimg\" stdout -l eng"
     local out=$(tesseract "$tmpimg" stdout -l eng 2>/dev/null | tr -d '\0' | grep -v '^$')
     rm -f "$tmpimg"
     [ -z "$out" ] && { info "No text found"; return; }

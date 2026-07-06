@@ -30,6 +30,7 @@ analyze_f5() {
             mkdir -p "$(dirname "$F5_JAR")"
             info "Downloading f5.jar..."
             for url in "${F5_JAR_URLS[@]}"; do
+                log_cmd_str "curl -sL \"$url\" -o \"$F5_JAR\""
                 curl -sL "$url" -o "$F5_JAR" 2>/dev/null
                 [ -f "$F5_JAR" ] && [ -s "$F5_JAR" ] && { info "f5.jar ready"; break; }
             done
@@ -38,9 +39,9 @@ analyze_f5() {
             local outfile="${OUTDIR}/carved/f5_out"
             info "Extracting with f5.jar..."
             for pw in "" "secret" "password" "flag" "ctf" "stego" "hidden" "key"; do
-                java -jar "$F5_JAR" extract "$f" -p "$pw" -o "$outfile" 2>/dev/null
+                run_cmd java -jar "$F5_JAR" extract "$f" -p "$pw" -o "$outfile"
                 if [ -f "$outfile" ] && [ -s "$outfile" ]; then
-                    local data=$(strings "$outfile" 2>/dev/null)
+                    local data=$(run_cmd strings "$outfile")
                     [ -n "$data" ] && echo "  [$pw] → $data"
                     local flag=$(extract_flags "$data" | head -1)
                     [ -n "$flag" ] && emit "flag" "FLAG: $flag (f5)" && found_any=true
@@ -52,9 +53,9 @@ analyze_f5() {
             if [ -f "$wl" ]; then
                 while IFS= read -r pw; do
                     [ -z "$pw" ] && continue
-                    java -jar "$F5_JAR" extract "$f" -p "$pw" -o "$outfile" 2>/dev/null
+                    run_cmd java -jar "$F5_JAR" extract "$f" -p "$pw" -o "$outfile"
                     if [ -f "$outfile" ] && [ -s "$outfile" ]; then
-                        local data=$(strings "$outfile" 2>/dev/null)
+                        local data=$(run_cmd strings "$outfile")
                         [ -n "$data" ] && echo "  [$pw] → $data"
                         local flag=$(extract_flags "$data" | head -1)
                         [ -n "$flag" ] && emit "flag" "FLAG: $flag (f5:$pw)" && found_any=true
@@ -69,6 +70,7 @@ analyze_f5() {
 
     # ─── Method 2: Python DCT analysis ───
     info "Trying Python DCT extraction..."
+    log_cmd_str "python3 -c '...' (f5 DCT analysis on $f) 2>/dev/null | while ..."
     python3 -c "
 import sys, os, hashlib, struct
 

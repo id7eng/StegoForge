@@ -13,7 +13,7 @@ analyze_stegseek() {
 
     info "Cracking with stegseek..."
     local outfile="${OUTDIR}/carved/stegseek_out"
-    stegseek "$f" "$wl" -o "$outfile" --quiet 2>/dev/null
+    run_cmd stegseek "$f" "$wl" -o "$outfile" --quiet
     [ -f "$outfile" ] && {
         local pass=$(stegseek "$f" "$wl" 2>&1 | grep -oP 'password: \K.*' | head -1)
         [ -n "$pass" ] && emit "password" "StegSeek password: $pass"

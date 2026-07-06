@@ -10,9 +10,9 @@ analyze_mp3stego() {
     header "MP3Stego" "Data extraction"
 
     local outfile="${OUTDIR}/carved/mp3stego_out"
-    MP3Stego -X -p "" "$f" -o "$outfile" 2>/dev/null
+    run_cmd MP3Stego -X -p "" "$f" -o "$outfile"
     [ -f "$outfile" ] && {
-        local content=$(strings "$outfile" 2>/dev/null)
+        local content=$(run_cmd strings "$outfile")
         [ -n "$content" ] && emit "mp3stego_data" "MP3Stego data: $content"
         rm -f "$outfile" 2>/dev/null
     }

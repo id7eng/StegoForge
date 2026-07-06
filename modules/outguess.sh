@@ -10,7 +10,7 @@ analyze_outguess() {
     header "OutGuess" "Data extraction"
 
     local outfile="${OUTDIR}/carved/outguess_out"
-    if outguess -r "$f" "$outfile" 2>/dev/null; then
+    if run_cmd outguess -r "$f" "$outfile"; then
         [ -f "$outfile" ] && {
             local content=$(strings "$outfile" 2>/dev/null)
             [ -n "$content" ] && emit "outguess_data" "OutGuess data: $content"
@@ -18,7 +18,7 @@ analyze_outguess() {
         }
     fi
     # Try with empty password
-    if outguess -k "" -r "$f" "${outfile}_2" 2>/dev/null; then
+    if run_cmd outguess -k "" -r "$f" "${outfile}_2"; then
         [ -f "${outfile}_2" ] && {
             local content=$(strings "${outfile}_2" 2>/dev/null)
             [ -n "$content" ] && emit "outguess_data" "OutGuess (empty pass): $content"

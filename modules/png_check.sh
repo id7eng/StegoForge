@@ -9,7 +9,7 @@ analyze_png_check() {
     local f="$1"
     header "PNG Check" "Chunk-level Structure Analysis"
 
-    local out=$(pngcheck -v "$f" 2>/dev/null)
+    local out=$(run_cmd pngcheck -v "$f")
     if [ -z "$out" ]; then
         info "pngcheck failed"
         return

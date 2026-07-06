@@ -10,9 +10,9 @@ analyze_jphide() {
     header "JPHide" "Data extraction"
 
     local outfile="${OUTDIR}/carved/jphide_out"
-    if jpseek "$f" "$outfile" 2>/dev/null; then
+    if run_cmd jpseek "$f" "$outfile"; then
         [ -f "$outfile" ] && {
-            local content=$(strings "$outfile" 2>/dev/null)
+            local content=$(run_cmd strings "$outfile")
             [ -n "$content" ] && emit "jphide_data" "JPHide data: $content"
             rm -f "$outfile" 2>/dev/null
             return
@@ -26,9 +26,9 @@ analyze_jphide() {
     while IFS= read -r p; do
         [ -z "$p" ] && continue
         rm -f "$outfile" 2>/dev/null
-        if jpseek "$f" "$outfile" "$p" 2>/dev/null; then
+        if run_cmd jpseek "$f" "$outfile" "$p"; then
             [ -f "$outfile" ] && {
-                local content=$(strings "$outfile" 2>/dev/null)
+                local content=$(run_cmd strings "$outfile")
                 [ -n "$content" ] && {
                     emit "password" "JPHide password: $p"
                     emit "jphide_data" "$content"

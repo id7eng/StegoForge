@@ -17,7 +17,7 @@ analyze_binary_digits() {
     local outfile="${OUTDIR}/carved/reconstructed.bin"
     export BINARY_FILE="$f"
     export BINARY_OUTFILE="$outfile"
-    while read line; do info "$line"; done < <(python3 -c "
+    while read line; do info "$line"; done < <(run_cmd python3 -c "
 import os, sys
 with open(os.environ['BINARY_FILE'], 'r') as f:
     bits = f.read().strip().replace(' ', '').replace('\n', '').replace('\r', '').replace('\t', '')
@@ -25,7 +25,7 @@ data = bytes(int(bits[i:i+8], 2) for i in range(0, len(bits) - len(bits) % 8, 8)
 with open(os.environ['BINARY_OUTFILE'], 'wb') as f:
     f.write(data)
 print(f'Wrote {len(data)} bytes')
-" 2>/dev/null)
+")
     unset BINARY_FILE BINARY_OUTFILE
 
     if [ -f "$outfile" ] && [ -s "$outfile" ]; then

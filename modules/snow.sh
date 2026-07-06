@@ -9,7 +9,7 @@ analyze_snow() {
     local f="$1"
     header "Snow" "Whitespace Analysis"
 
-    local out=$(snow -C "$f" 2>/dev/null)
+    local out=$(run_cmd snow -C "$f")
     local line=$(echo "$out" | grep -v "error\|usage\|^$" | head -1)
     [ -n "$line" ] && emit "snow_data" "Snow data: $line"
 
@@ -19,7 +19,7 @@ analyze_snow() {
     if [ -n "$pwlist" ]; then
         while IFS= read -r p; do
             [ -z "$p" ] && continue
-            local result=$(snow -C -p "$p" "$f" 2>/dev/null)
+            local result=$(run_cmd snow -C -p "$p" "$f")
             local data=$(echo "$result" | grep -v "error\|usage\|^$" | head -1)
             [ -n "$data" ] && {
                 emit "password" "Snow password: $p"

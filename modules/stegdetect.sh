@@ -8,7 +8,7 @@ MD_PRODUCES="steg_tool"
 analyze_stegdetect() {
     local f="$1"
     header "StegDetect" "JPEG Steganography Tool Detection"
-    local out=$(stegdetect -t jphide,outguess,jsteg,f5 "$f" 2>/dev/null)
+    local out=$(run_cmd stegdetect -t jphide,outguess,jsteg,f5 "$f")
     local tool=$(echo "$out" | sed 's/.*: *//' | head -1)
     [ -z "$tool" ] && tool="negative"
     if echo "$tool" | grep -qv "negative"; then

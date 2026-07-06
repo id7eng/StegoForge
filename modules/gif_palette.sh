@@ -12,7 +12,7 @@ analyze_gif_palette() {
     export GIFPALETTE_FILE="$f"
     while read line; do
         emit "gif_palette" "$line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, sys
 from PIL import Image
 
@@ -50,6 +50,6 @@ while True:
         if texts:
             print(f'Frame {frame} text: {\" | \".join(texts)}')
     frame += 1
-" 2>/dev/null)
+")
     unset GIFPALETTE_FILE
 }

@@ -69,7 +69,7 @@ analyze_polyglot_detector() {
 
         export POLYGLOT_FILE="$file"
         export POLYGLOT_NEW_FILE="$new_file"
-        local did_fix=$(python3 -c "
+        local did_fix=$(run_cmd python3 -c "
 import os, sys
 with open(os.environ['POLYGLOT_FILE'], 'rb') as f:
     data = bytearray(f.read())
@@ -110,7 +110,7 @@ with open(os.environ['POLYGLOT_NEW_FILE'], 'wb') as out:
     out.write(data if isinstance(data, bytes) else bytes(data))
 
 print('1' if fixed else '0')
-" 2>/dev/null)
+")
         unset POLYGLOT_FILE POLYGLOT_NEW_FILE
 
         if [ "$did_fix" = "1" ]; then

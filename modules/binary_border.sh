@@ -12,7 +12,7 @@ analyze_binary_border() {
     export BORDER_FILE="$f"
     while read line; do
         emit "border_data" "Border data: $line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, sys
 from PIL import Image
 
@@ -52,6 +52,6 @@ for i in range(0, len(bits) - len(bits) % 8, 8):
 
 if chars.strip():
     print(chars)
-" 2>/dev/null)
+")
     unset BORDER_FILE
 }

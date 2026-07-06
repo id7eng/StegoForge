@@ -10,12 +10,12 @@ analyze_audio_reverse() {
     header "Audio Reverse" "Reversed Audio Analysis"
 
     local reversed_file="${OUTDIR}/carved/reversed_audio.wav"
-    sox "$f" "$reversed_file" reverse 2>/dev/null || {
+    run_cmd sox "$f" "$reversed_file" reverse || {
         info "sox reverse failed"
         return
     }
 
-    local text=$(strings "$reversed_file" 2>/dev/null | grep -v "^$" | head -10)
+    local text=$(run_cmd strings "$reversed_file" | grep -v "^$" | head -10)
     [ -n "$text" ] && while IFS= read -r line; do
         emit "reversed_data" "Reversed text: $line"
     done <<< "$text"
@@ -23,7 +23,7 @@ analyze_audio_reverse() {
     export AUDIO_REVERSED_FILE="$reversed_file"
     while read line; do
         emit "reversed_data" "Audio bytes: $line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, wave, re
 try:
     with wave.open(os.environ['AUDIO_REVERSED_FILE'], 'rb') as w:
@@ -33,7 +33,7 @@ try:
         print(t.decode('ascii', errors='replace'))
 except Exception:
     pass
-" 2>/dev/null)
+")
     unset AUDIO_REVERSED_FILE
 
     rm -f "$reversed_file" 2>/dev/null

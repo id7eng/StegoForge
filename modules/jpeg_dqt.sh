@@ -12,7 +12,7 @@ analyze_jpeg_dqt() {
     export JPEGDQT_FILE="$f"
     while read line; do
         emit "dqt_data" "JPEG DQT: $line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, struct
 
 with open(os.environ['JPEGDQT_FILE'], 'rb') as f:
@@ -45,6 +45,6 @@ for tid, coeffs in tables.items():
             chars += chr(int(b, 2))
     if len(chars) > 3:
         print(f'DQT[{tid}]: {chars}')
-" 2>/dev/null)
+")
     unset JPEGDQT_FILE
 }

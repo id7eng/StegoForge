@@ -10,7 +10,7 @@ analyze_append_data() {
     header "Append Data" "Data After End Marker Detection"
 
 export APPEND_DATA_FILE="$f"
-local results=$(python3 -c "
+local results=$(run_cmd python3 -c "
 import os, struct, sys
 
 with open(os.environ['APPEND_DATA_FILE'], 'rb') as f:
@@ -36,7 +36,7 @@ if data[:2] == b'\xff\xd8':
         after = eoi + 2
         if after < len(data):
             print(f'JPEG_EOI:{after}:{len(data)-after}')
-" 2>/dev/null)
+")
 unset APPEND_DATA_FILE
 
 while IFS= read -r result; do
@@ -51,7 +51,7 @@ while IFS= read -r result; do
     run_cmd dd if="$f" bs=1 skip="$offset" > "$outfile"
 
     if [ -f "$outfile" ] && [ -s "$outfile" ]; then
-        local magic=$(xxd -l 4 -p "$outfile" 2>/dev/null)
+        local magic=$(run_cmd xxd -l 4 -p "$outfile")
         local detected=""
         case "$magic" in
             504b0304) detected="ZIP archive" ;;

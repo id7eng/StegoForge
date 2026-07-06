@@ -15,6 +15,7 @@ analyze_quick_scan() {
         combined+="$p"
     done
     [ -z "$combined" ] && return
+    log_cmd_str "grep -a -oP \"$combined\" \"$f\""
     while read m; do
         [ -n "$m" ] && { emit_flag "$m"; return; }
     done < <(grep -a -oP "$combined" "$f" 2>/dev/null)

@@ -16,7 +16,7 @@ analyze_spectrogram() {
             OK:*) emit "spectrogram" "Spectrogram → ${line#OK:}" ;;
             ERR:*) info "${line#ERR:}" ;;
         esac
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os
 try:
     import numpy as np, matplotlib.pyplot as plt
@@ -29,6 +29,6 @@ try:
     print(f'OK: {outpath}')
 except Exception as e:
     print(f'ERR: {e}')
-" 2>/dev/null)
+")
     unset SPECTROGRAM_FILE SPECTROGRAM_OUT
 }

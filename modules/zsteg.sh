@@ -14,9 +14,8 @@ analyze_zsteg() {
     if command -v zsteg &>/dev/null; then
         local zsteg_opts=""
         $VERBOSE && zsteg_opts="-a"
-        log_cmd zsteg $zsteg_opts "$f"
         local zsteg_out
-        zsteg_out=$(zsteg $zsteg_opts "$f" 2>/dev/null)
+        zsteg_out=$(run_cmd zsteg $zsteg_opts "$f")
         while IFS= read -r l; do
             l=$(echo "$l" | tr -d '\r')
             echo "$l" | grep -qE '\.\. *$' && continue

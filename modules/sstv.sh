@@ -11,14 +11,14 @@ analyze_sstv() {
 
     local outfile="${OUTDIR}/carved/sstv_out.png"
     if command -v sstv &>/dev/null; then
-        sstv -d "$f" -o "$outfile" 2>/dev/null && {
+        run_cmd sstv -d "$f" -o "$outfile" && {
             [ -f "$outfile" ] && {
                 info "SSTV image → $outfile"
                 $VERBOSE && echo "  [*] SSTV decoded: $outfile"
             }
         }
     elif command -v qsstv &>/dev/null; then
-        qsstv --decode "$f" --output "$outfile" 2>/dev/null && {
+        run_cmd qsstv --decode "$f" --output "$outfile" && {
             [ -f "$outfile" ] && {
                 info "SSTV image → $outfile"
             }

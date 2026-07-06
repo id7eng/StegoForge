@@ -12,7 +12,7 @@ analyze_metadata() {
         info "exiftool not installed"
         return
     fi
-    local et_out=$(exiftool "$f" 2>/dev/null)
+    local et_out=$(run_cmd exiftool "$f")
     [ -z "$et_out" ] && { info "No metadata"; return; }
 
     while IFS=': ' read -r field value; do

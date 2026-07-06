@@ -30,7 +30,7 @@ analyze_bit_plane() {
 export BITPLANE_FILE="$f"
 export BITPLANE_OUTDIR="$bpd"
 export BP_COND="$cond_enabled" BP_TR="$target_r" BP_TG="$target_g" BP_TB="$target_b" BP_TOL="$tolerance"
-local result=$(python3 -c "
+local result=$(run_cmd python3 -c "
 import os, sys
 from PIL import Image
 
@@ -139,7 +139,7 @@ if cond:
     print(f'COND:{w}x{h} target=({tr},{tg},{tb}) tol={tol} matching={matching}/{total_px} ({pct}%)')
 else:
     print(f'OK:{w}x{h}')
-" 2>/dev/null)
+")
 unset BITPLANE_FILE BITPLANE_OUTDIR BP_COND BP_TR BP_TG BP_TB BP_TOL
 
 local cond_details=""

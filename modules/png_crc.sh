@@ -9,17 +9,17 @@ analyze_png_crc() {
     local f="$1"
     header "PNG CRC" "IHDR Dimension Check"
 
-    local ihdr_hex=$(xxd -s 8 -l 13 -p "$f" 2>/dev/null)
+    local ihdr_hex=$(run_cmd xxd -s 8 -l 13 -p "$f")
     [ -z "$ihdr_hex" ] && { info "Not a valid PNG"; return; }
 
-    local stored_crc=$(xxd -s 29 -l 4 -p "$f" 2>/dev/null)
+    local stored_crc=$(run_cmd xxd -s 29 -l 4 -p "$f")
     export PNGCRC_IHDR_HEX="$ihdr_hex"
-    local computed_crc=$(python3 -c "
+    local computed_crc=$(run_cmd python3 -c "
 import os, struct, zlib
 data = bytes.fromhex(os.environ['PNGCRC_IHDR_HEX'])
 crc = zlib.crc32(data) & 0xffffffff
 print(f'{crc:08x}')
-" 2>/dev/null)
+")
     unset PNGCRC_IHDR_HEX
 
     if [ "$stored_crc" = "$computed_crc" ]; then
@@ -37,7 +37,7 @@ print(f'{crc:08x}')
             FOUND_WD:*) emit "dims_found" "Correct width = ${line#FOUND_WD:}" ;;
             NOT_FOUND) info "Could not find correct dimensions" ;;
         esac
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os, struct, zlib
 
 with open(os.environ['PNGCRC_FILE'], 'rb') as f:
@@ -67,7 +67,7 @@ for w in range(1, 3000):
         exit(0)
 
 print('NOT_FOUND')
-" 2>/dev/null)
+")
     unset PNGCRC_FILE
 
     [ -f "$f.crc_fixed" ] && {

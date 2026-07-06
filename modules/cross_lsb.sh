@@ -14,6 +14,7 @@ analyze_cross_lsb() {
         return
     fi
 
+    log_cmd_str "python3 -c '...' (cross_lsb multi-bit LSB on $f) 2>/dev/null | while ..."
     python3 -c "
 import sys
 try:

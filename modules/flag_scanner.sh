@@ -48,7 +48,7 @@ analyze_flag_scanner() {
                 fi
             done <<< "$xor_targets"
         fi
-    done < <(find "$OUTDIR" -type f 2>/dev/null -print0)
+    done < <(find "$OUTDIR" -type f -print0 2>/dev/null)
 
     [ "$found" -eq 0 ] && info "No additional flags found in output files"
 }

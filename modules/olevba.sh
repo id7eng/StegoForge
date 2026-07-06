@@ -9,7 +9,7 @@ analyze_olevba() {
     local f="$1"
     header "OleVBA" "Office Macro Analysis"
 
-    local out=$(olevba -c "$f" 2>/dev/null)
+    local out=$(run_cmd olevba -c "$f")
     [ -z "$out" ] && return
 
     local flags=$(echo "$out" | grep -iE "flag|ctf|secret|password|key|http" 2>/dev/null)

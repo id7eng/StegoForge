@@ -10,7 +10,7 @@ analyze_zero_width() {
     header "Zero-Width" "Invisible Characters"
 
     export ZEROWIDTH_FILE="$f"
-    local out=$(python3 -c "
+    local out=$(run_cmd python3 -c "
 import os, sys
 with open(os.environ['ZEROWIDTH_FILE'], 'r', errors='replace') as f:
     content = f.read()
@@ -38,7 +38,7 @@ for i in range(0, len(bits) - len(bits) % 8, 8):
 
 if chars.strip():
     print(chars)
-" 2>/dev/null)
+")
     unset ZEROWIDTH_FILE
 
     [ -n "$out" ] && emit "zw_data" "Zero-width decoded: $out"

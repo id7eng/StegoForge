@@ -9,13 +9,13 @@ analyze_stepic() {
     local f="$1"
     header "Stepic" "Python stepic LSB Decoder"
 
-    if ! python3 -c "import stepic" 2>/dev/null; then
+    if ! run_cmd python3 -c "import stepic"; then
         info "stepic not installed (pip install stepic)"
         return
     fi
 
     export STEPIC_FILE="$f"
-    local out=$(python3 -c "
+    local out=$(run_cmd python3 -c "
 import os, stepic
 from PIL import Image
 try:
@@ -25,7 +25,7 @@ try:
         print(data)
 except Exception:
     pass
-" 2>/dev/null)
+")
     unset STEPIC_FILE
 
     [ -n "$out" ] && emit "stepic_data" "Stepic data: $out"

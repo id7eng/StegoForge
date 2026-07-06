@@ -11,6 +11,7 @@ analyze_pdf_analysis() {
 
     # Text extraction via pdftotext
     if command -v pdftotext &>/dev/null; then
+        log_cmd_str "pdftotext \"$f\" - | tr -d '\0'"
         local text=$(pdftotext "$f" - 2>/dev/null | tr -d '\0')
         if [ -n "$text" ]; then
             # Emit all lines
@@ -40,7 +41,7 @@ analyze_pdf_analysis() {
     while IFS= read -r line; do
         [ -z "$line" ] && continue
         emit "pdf_data" "After EOF: $line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os
 with open(os.environ['PDF_FILE'], 'rb') as f:
     data = f.read()
@@ -52,7 +53,7 @@ if eof_pos != -1 and eof_pos + 5 < len(data):
         texts = re.findall(b'[A-Za-z0-9_{}]{4,}', extra)
         for t in texts:
             print(t.decode('ascii', errors='replace'))
-" 2>/dev/null)
+")
     unset PDF_FILE
 
     # PDF comments
@@ -60,7 +61,7 @@ if eof_pos != -1 and eof_pos + 5 < len(data):
     while IFS= read -r line; do
         [ -z "$line" ] && continue
         emit "pdf_data" "$line"
-    done < <(python3 -c "
+    done < <(run_cmd python3 -c "
 import os
 with open(os.environ['PDF_FILE'], 'rb') as f:
     data = f.read()
@@ -73,6 +74,6 @@ for c in comments:
             print(f'Comment: {t}')
     except:
         pass
-" 2>/dev/null)
+")
     unset PDF_FILE
 }

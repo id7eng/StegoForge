@@ -9,7 +9,7 @@ analyze_dtmf() {
     local f="$1"
     header "DTMF" "Phone Tone Decoding"
 
-    local out=$(multimon-ng -t wav -a DTMF "$f" 2>/dev/null)
+    local out=$(run_cmd multimon-ng -t wav -a DTMF "$f")
     local dtmf=$(echo "$out" | grep "DTMF:" | head -5)
     [ -n "$dtmf" ] && while IFS= read -r line; do
         emit "dtmf_data" "DTMF: $line"

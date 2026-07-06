@@ -27,7 +27,7 @@ analyze_repair() {
     if head -1 "$f" 2>/dev/null | grep -qiE '^[0-9a-f]{2}([-\s:]?[0-9a-f]{2})+'; then
         xxd -r -p <(sed 's/[^0-9a-fA-F]//g' "$f") "$repaired" 2>/dev/null
         file "$repaired" 2>/dev/null | grep -qiE 'jpeg|png|gif|zip|pdf|bmp|elf|exe' && {
-            emit "repaired_file" "Repaired hex dump → $(file -b "$repaired")"
+            emit "repaired_file" "Repaired hex dump → $(file -b "$repaired" 2>/dev/null)"
             cp "$repaired" "${OUTDIR}/repaired/" 2>/dev/null
             ANALYZE_THIS="$repaired"
             return
@@ -47,7 +47,7 @@ analyze_repair() {
     esac
 
     if file "$repaired" 2>/dev/null | grep -qiE "$guess|image|archive|document"; then
-        local newtype=$(file -b "$repaired")
+        local newtype=$(file -b "$repaired" 2>/dev/null)
         emit "repaired_file" "Repaired → $newtype"
         cp "$repaired" "${OUTDIR}/repaired/" 2>/dev/null
         ANALYZE_THIS="$repaired"

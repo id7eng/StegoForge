@@ -60,20 +60,34 @@ save_artifact() {
 }
 
 log_cmd() {
-    local cmd_str
+    local cmd_str toolname
     printf -v cmd_str '%s ' "$@"
     if [ "${VERBOSE_CMD:-false}" = true ]; then
-        local n; n=$(inc_cmd_counter)
-        local tool_name
-        tool_name="$(basename "${1:-}" 2>/dev/null)"
-        echo -e "\n${C}══════════════════════════════════════════════${N}" >&2
-        echo -e "  ${BOLD}[$n]${N} ${W}${tool_name}${N}" >&2
-        echo -e "  ${W}Command${N}: ${R}$cmd_str${N}" >&2
-        echo -e "${C}══════════════════════════════════════════════${N}" >&2
+        cmd_str="${cmd_str//$'\n'/ }"
+        cmd_str="${cmd_str//$'\r'/ }"
+        toolname="${1##*/}"
+        echo >&2
+        echo -e "  ${BOLD}[${W}${toolname}${N}${BOLD}]${N}" >&2
+        printf "  ${G}\$ ${W}%s${N}\n" "$cmd_str" >&2
+        echo >&2
     fi
 }
 
 run_cmd() {
     log_cmd "$@"
     "$@" 2>/dev/null
+}
+
+log_cmd_str() {
+    if [ "${VERBOSE_CMD:-false}" = true ]; then
+        local msg toolname
+        msg="$*"
+        msg="${msg//$'\n'/ }"
+        msg="${msg//$'\r'/ }"
+        toolname="${1%% *}"; toolname="${toolname##*/}"
+        echo >&2
+        echo -e "  ${BOLD}[${W}${toolname}${N}${BOLD}]${N}" >&2
+        printf "  ${G}\$ ${W}%s${N}\n" "$msg" >&2
+        echo >&2
+    fi
 }
