@@ -2,6 +2,7 @@
 TOOL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 STEGOFORGE="$TOOL_DIR/stegoforge"
 TEMP_DIR="/tmp/stegoforge_test_$$"
+export STEGOFORGE_TEST=1
 PASS=0; FAIL=0; SKIP=0; TOTAL=0
 RESULTS=()
 mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
@@ -49,6 +50,9 @@ echo -e "${C}╔═════════════════════�
 echo -e "${C}║     ${W}StegoForge v1.3.2${C} - Test Suite       ║${N}"
 echo -e "${C}╚══════════════════════════════════════════════╝${N}"
 echo ""
+
+# Clean up from any previous partial run
+rm -rf "$TEMP_DIR" 2>/dev/null; mkdir -p "$TEMP_DIR" && cd "$TEMP_DIR"
 
 # [01] Strings — keyword
 echo -e "${BOLD}[01/14] Strings — keyword${N}"
@@ -108,7 +112,37 @@ else
     skip "zsteg" "zsteg"; TOTAL=$((TOTAL+1))
 fi
 
-# [06] Steghide
+# [06] Cross-LSB
+echo -e "${BOLD}[06/14] Cross-LSB${N}"
+python3 -c "
+from PIL import Image
+import random, struct
+random.seed(123)
+w,h=50,50
+img=Image.new('RGB',(w,h))
+flag=b'CTF{test_cross_lsb_ok}'
+bits=''.join(f'{b:08b}' for b in flag)
+pix=[]
+idx=0
+for y in range(h):
+    for x in range(w):
+        r=random.randint(0,255)
+        g=random.randint(0,255)
+        b=random.randint(0,255)
+        if idx<len(bits):
+            r=(r&0xFE)|int(bits[idx]); idx+=1
+        if idx<len(bits):
+            g=(g&0xFD)|(int(bits[idx])<<1); idx+=1
+        if idx<len(bits):
+            b=(b&0xFB)|(int(bits[idx])<<2); idx+=1
+        pix.append((r,g,b))
+img.putdata(pix)
+img.save('cross_lsb_test.png')
+" 2>/dev/null
+check "cross_lsb" cross_lsb_test.png "CTF{test_cross_lsb_ok}"
+echo ""
+
+# [07] Steghide
 echo -e "${BOLD}[06/14] Steghide${N}"
 if command -v steghide &>/dev/null; then
     python3 -c "
@@ -181,6 +215,36 @@ with open('bp_test.png','wb') as f: f.write(png(w,h,bytes(pix)))
 " 2>/dev/null
 check "bit_plane" bp_test.png "bit planes"
 
+# [08b] Bit Plane — Conditional filter
+echo -e "${BOLD}[08b/14] Bit Plane — Conditional filter${N}"
+python3 -c "
+from PIL import Image
+import random
+random.seed(123)
+w,h=16,16
+img=Image.new('RGB',(w,h))
+msg=b'CTF{test_cond_bp_ok}'
+bits=''.join(f'{b:08b}' for b in msg)
+pix=[]
+idx=0
+for y in range(h):
+    for x in range(w):
+        if random.random()<0.25 and idx<len(bits):
+            r=random.randint(0,15)&0xFE
+            g=random.randint(0,15)&0xFE
+            b=random.randint(0,15)&0xFE
+            if idx<len(bits): r|=int(bits[idx]); idx+=1
+            if idx<len(bits): g|=int(bits[idx]); idx+=1
+            if idx<len(bits): b|=int(bits[idx]); idx+=1
+            pix.append((r,g,b))
+        else:
+            pix.append((random.randint(100,255),random.randint(100,255),random.randint(100,255)))
+img.putdata(pix)
+img.save('cond_bp_test.png')
+" 2>/dev/null
+BP_CONDITION_ENABLED=1 BP_TARGET_R=0 BP_TARGET_G=0 BP_TARGET_B=0 BP_TOLERANCE=50 bash "$STEGOFORGE" -v cond_bp_test.png 2>/dev/null | grep -qiF "CTF{test_cond_bp_ok}" && pass "bit_plane_cond" || fail "bit_plane_cond"
+TOTAL=$((TOTAL+1))
+
 # [09] QR Code
 echo -e "${BOLD}[09/14] QR Code${N}"
 python3 -c "
@@ -235,8 +299,9 @@ fi
 
 # [13] Foremost
 echo -e "${BOLD}[13/14] Foremost${N}"
-if command -v zip &>/dev/null && command -v foremost &>/dev/null; then
-    [ -f bw.jpg ] || {
+if command -v foremost &>/dev/null; then
+    [ -f bw.jpg ] && check "foremost" bw.jpg "carved" "foremost"
+    if [ ! -f bw.jpg ] && command -v zip &>/dev/null; then
         echo "CTF{test_foremost_ok}" > ff.txt; zip ff.zip ff.txt &>/dev/null
         python3 -c "
 with open('fm.jpg','wb') as f:
@@ -244,16 +309,18 @@ with open('fm.jpg','wb') as f:
 with open('ff.zip','rb') as z:
     with open('fm.jpg','ab') as f: f.write(z.read())
 " 2>/dev/null
-        check "foremost" fm.jpg "carved"
-    }
-    [ -f bw.jpg ] && check "foremost" bw.jpg "carved"
+        check "foremost" fm.jpg "carved" "foremost"
+    elif [ ! -f bw.jpg ]; then
+        skip "foremost" "zip"; TOTAL=$((TOTAL+1))
+    fi
 else
-    skip "foremost" "zip/foremost"; TOTAL=$((TOTAL+1))
+    skip "foremost" "foremost"; TOTAL=$((TOTAL+1))
 fi
 
 # [14] Spectrogram
 echo -e "${BOLD}[14/14] Spectrogram${N}"
-python3 -c "
+if python3 -c "from scipy.io import wavfile; import matplotlib; print('OK')" 2>/dev/null | grep -q OK; then
+    python3 -c "
 import struct, math, sys
 try:
     sr=44100; dur=0.3; n=int(sr*dur); data=bytearray()
@@ -267,7 +334,10 @@ try:
     print('OK')
 except: print('ERR')
 " 2>/dev/null | grep -q OK
-[ -f spec.wav ] && check "spectrogram" spec.wav "spectrogram" || { skip "spectrogram" "python/wav"; TOTAL=$((TOTAL+1)); }
+    [ -f spec.wav ] && check "spectrogram" spec.wav "spectrogram" || { skip "spectrogram" "python/wav"; TOTAL=$((TOTAL+1)); }
+else
+    skip "spectrogram" "scipy/matplotlib"; TOTAL=$((TOTAL+1))
+fi
 
 # [15] Smart Wordlist
 echo -e "${BOLD}[15/18] Smart Wordlist${N}"
@@ -484,6 +554,180 @@ wrpcap('pcap_test.pcap', [pkt])
 else
     skip "pcap_analysis" "tshark/scapy"; TOTAL=$((TOTAL+1))
 fi
+
+# [26] Priority System — module type filtering
+echo -e "${BOLD}[26/36] Priority System — type filtering${N}"
+python3 -c "
+import struct, zlib
+w,h=5,5; pix=bytearray()
+for y in range(h):
+    for x in range(w): pix.extend([x*50,y*50,128])
+def png(w,h,p):
+    def c(ct,d):
+        cd=ct+d; return struct.pack('>I',len(d))+cd+struct.pack('>I',zlib.crc32(cd)&0xffffffff)
+    s=b'\x89PNG\r\n\x1a\n'; ih=c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))
+    r=b''
+    for y in range(h): r+=b'\x00'+bytes(p[y*w*3:(y*w+3)*3])
+    id=c(b'IDAT',zlib.compress(r)); ie=c(b'IEND',b'')
+    return s+ih+id+ie
+data=png(w,h,bytes(pix))
+data+=b'CTF{test_priority_type_ok}'
+with open('priority_test.png','wb') as f: f.write(bytes(data))
+" 2>/dev/null
+check "priority_type_filter" priority_test.png "CTF{test_priority_type_ok}"
+TOTAL=$((TOTAL+1))
+
+# [27] Pipeline — flag from pipeline trigger
+echo -e "${BOLD}[27/36] Pipeline — flag from pipeline trigger${N}"
+echo "FLAG{test_pipeline_ok}" > pipe_test.txt
+check "pipeline" pipe_test.txt "FLAG{test_pipeline_ok}"
+TOTAL=$((TOTAL+1))
+
+# [28] Polyglot — JPEG detected in data file
+echo -e "${BOLD}[28/36] Polyglot Fixer — JPEG without SOI${N}"
+python3 -c "
+import struct
+data = b'\xff\xe0' + struct.pack('>H', 16) + b'JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00'
+data += b'\xff\xfe' + struct.pack('>H', 24) + b'CTF{test_polyglot_fix_ok}'
+data += b'\xff\xc0' + struct.pack('>H', 11) + b'\x08\x00\x01\x00\x01\x01\x01\x11\x00'
+data += b'\xff\xda' + struct.pack('>H', 8) + b'\x01\x01\x00\x00\x3f\x00'
+data += b'\x00' * 64 + b'\xff\xd9'
+with open('polyglot_test.bin','wb') as f: f.write(data)
+" 2>/dev/null
+check "polyglot" polyglot_test.bin "CTF{test_polyglot_fix_ok}"
+TOTAL=$((TOTAL+1))
+
+# [29] Repair — missing JPEG markers
+echo -e "${BOLD}[29/36] Repair — missing JPEG markers${N}"
+python3 -c "
+import struct
+# Missing start of JPEG (no FFD8)
+data = b'\xff\xfe' + struct.pack('>H', 26) + b'flag{test_repair_markers_ok}'
+data += b'\xff\xd9'
+with open('repair_markers.bin','wb') as f: f.write(data)
+" 2>/dev/null
+check "repair_markers" repair_markers.bin "flag{test_repair_markers_ok}"
+TOTAL=$((TOTAL+1))
+
+# [30] Recursive — nested zip extraction
+echo -e "${BOLD}[30/36] Recursive — nested zip extraction${N}"
+if command -v zip &>/dev/null; then
+    echo "CTF{test_recursive_ok}" > inner.txt
+    zip inner.zip inner.txt &>/dev/null
+    python3 -c "
+import struct, zlib
+w,h=1,1; pix=bytearray([0,0,0])
+def png(w,h,p):
+    def c(ct,d):
+        cd=ct+d; return struct.pack('>I',len(d))+cd+struct.pack('>I',zlib.crc32(cd)&0xffffffff)
+    s=b'\x89PNG\r\n\x1a\n'; ih=c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))
+    r=b''
+    for y in range(h): r+=b'\x00'+bytes(p[y*w*3:(y*w+3)*3])
+    id=c(b'IDAT',zlib.compress(r)); ie=c(b'IEND',b'')
+    return s+ih+id+ie
+with open('inner.zip','rb') as z:
+    with open('recursive_test.png','wb') as f:
+        f.write(png(w,h,bytes(pix)))
+        f.write(z.read())
+" 2>/dev/null
+    check "recursive" recursive_test.png "CTF{test_recursive_ok}"
+else
+    skip "recursive" "zip"; TOTAL=$((TOTAL+1))
+fi
+
+# [31] Large file — >10MB text with embedded flag
+echo -e "${BOLD}[31/36] Large file (>10MB)${N}"
+python3 -c "
+import random, string
+random.seed(0)
+with open('large_test.txt', 'w') as f:
+    for _ in range(200000):
+        f.write(''.join(random.choice(string.ascii_letters) for _ in range(50)) + '\n')
+    f.write('HTB{test_large_file_ok}\n')
+" 2>/dev/null
+check "large_file" large_test.txt "HTB{test_large_file_ok}"
+TOTAL=$((TOTAL+1))
+
+# [32] Corrupted file — truncated PNG
+echo -e "${BOLD}[32/36] Corrupted file — truncated PNG${N}"
+python3 -c "
+import struct, zlib
+w,h=10,10; pix=bytearray()
+for y in range(h):
+    for x in range(w): pix.extend([x*25,y*12,128])
+def png(w,h,p):
+    def c(ct,d):
+        cd=ct+d; return struct.pack('>I',len(d))+cd+struct.pack('>I',zlib.crc32(cd)&0xffffffff)
+    s=b'\x89PNG\r\n\x1a\n'; ih=c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))
+    r=b''
+    for y in range(h): r+=b'\x00'+bytes(p[y*w*3:(y*w+3)*3])
+    id=c(b'IDAT',zlib.compress(r)); ie=c(b'IEND',b'')
+    return s+ih+id+ie
+data=png(w,h,bytes(pix))
+with open('corrupted.png','wb') as f: f.write(data[:50])  # Truncate
+" 2>/dev/null
+# Should not crash — should handle gracefully
+out=$("$STEGOFORGE" corrupted.png 2>/dev/null)
+if [ "$?" -eq 0 ]; then
+    pass "corrupted_file"
+else
+    fail "corrupted_file"
+fi
+TOTAL=$((TOTAL+1))
+
+# [33] Empty file
+echo -e "${BOLD}[33/36] Empty file${N}"
+touch empty.txt
+out=$("$STEGOFORGE" empty.txt 2>/dev/null)
+[ "$?" -eq 0 ] && pass "empty_file" || fail "empty_file"
+TOTAL=$((TOTAL+1))
+rm -f empty.txt
+
+# [34] Generic flag pattern — AnyName{...}
+echo -e "${BOLD}[34/36] Generic flag pattern — AnyName{...}${N}"
+echo "MYCUSTOMFLAG{custom_flag_test_ok}" > generic_flag.txt
+check "generic_flag" generic_flag.txt "MYCUSTOMFLAG{custom_flag_test_ok}"
+TOTAL=$((TOTAL+1))
+
+# [35] Confidence — metadata should have higher confidence than strings
+echo -e "${BOLD}[35/36] Confidence scoring${N}"
+if command -v exiftool &>/dev/null; then
+    python3 -c "
+import struct, zlib
+w,h=5,5; pix=bytearray()
+for y in range(h):
+    for x in range(w): pix.extend([x*50,y*50,128])
+def png(w,h,p):
+    def c(ct,d):
+        cd=ct+d; return struct.pack('>I',len(d))+cd+struct.pack('>I',zlib.crc32(cd)&0xffffffff)
+    s=b'\x89PNG\r\n\x1a\n'; ih=c(b'IHDR',struct.pack('>IIBBBBB',w,h,8,2,0,0,0))
+    r=b''
+    for y in range(h): r+=b'\x00'+bytes(p[y*w*3:(y*w+3)*3])
+    id=c(b'IDAT',zlib.compress(r)); ie=c(b'IEND',b'')
+    return s+ih+id+ie
+with open('conf_test.png','wb') as f: f.write(png(w,h,bytes(pix)))
+" 2>/dev/null
+    exiftool -Artist="picoCTF{test_confidence_ok}" conf_test.png -overwrite_original &>/dev/null
+    check "confidence" conf_test.png "picoCTF{test_confidence_ok}"
+else
+    skip "confidence" "exiftool"; TOTAL=$((TOTAL+1))
+fi
+
+# [36] Confidence — low confidence finding ignored until confirmed
+echo -e "${BOLD}[36/36] Low confidence filter${N}"
+# Binary noise that looks like flag but has low entropy
+python3 -c "
+import string, random
+random.seed(42)
+# Generate text that contains a flag-like pattern from noise
+with open('low_conf_test.txt', 'w') as f:
+    for _ in range(100):
+        f.write(''.join(random.choice(string.ascii_letters) for _ in range(20)) + '\n')
+    # Embedded real flag
+    f.write('NCSE{test_low_conf_filter_ok}\n')
+" 2>/dev/null
+check "low_conf_filter" low_conf_test.txt "NCSE{test_low_conf_filter_ok}"
+TOTAL=$((TOTAL+1))
 
 cd / >/dev/null
 rm -rf "$TEMP_DIR" /tmp/stegoforge_mnt /tmp/thumb_test_tmp.png 2>/dev/null

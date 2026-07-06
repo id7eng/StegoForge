@@ -14,7 +14,7 @@ analyze_rot_brute() {
     # Try ROT1-25 on each line longer than 8 chars
     while IFS= read -r line; do
         [ "${#line}" -lt 8 ] && continue
-        python3 -c "
+        run_cmd python3 -c "
 import sys
 line = sys.argv[1]
 for shift in range(1, 26):

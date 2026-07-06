@@ -1,5 +1,35 @@
 RULES_FILE="${CONFIG_DIR}/priority_rules.json"
 
+get_file_category() {
+    local lower=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    case "$lower" in
+        png*|jpeg*|jpg*|gif*|bmp*|tiff*|webp*) echo "image" ;;
+        wav*|mp3*|au*|wave*|flac*|ogg*) echo "audio" ;;
+        mp4*|avi*|mov*|mkv*|webm*|flv*) echo "video" ;;
+        zip*|rar*|7z*|gz*|tar*|bz2*|xz*) echo "archive" ;;
+        pdf*) echo "pdf" ;;
+        doc*|docx*|xls*|xlsx*|ppt*|pptx*) echo "office" ;;
+        pcap*|pcapng*) echo "pcap" ;;
+        txt*|text*|html*|css*|js*|xml*|json*|csv*) echo "text" ;;
+        data*) echo "data" ;;
+        *) echo "other" ;;
+    esac
+}
+
+module_matches_type() {
+    local types="$1" ftype="$2"
+    [[ "$types" == "*" ]] && return 0
+    local ftype_first=$(echo "$ftype" | awk '{print tolower($1)}')
+    for t in $types; do
+        if [ "$t" = "data" ]; then
+            [ "$ftype_first" = "data" ] && return 0
+        else
+            [ "$ftype_first" = "$t" ] && return 0
+        fi
+    done
+    return 1
+}
+
 load_priority_rules() {
     [ -f "$RULES_FILE" ] || {
         info "No priority rules found at $RULES_FILE"
@@ -46,9 +76,9 @@ get_priority_boosted_modules() {
 
     export PRIORITY_RULES_JSON="$rules"
     export PRIORITY_RULES_BOOST="$base_boost"
-    export PRIORITY_RULES_MODULES="${boosted_modules[*]}"
 }
 
+declare -A COND_BOOST_SEEN=()
 get_conditional_boost() {
     local module_name="$1"
     local output="$2"
@@ -62,6 +92,8 @@ get_conditional_boost() {
 
     while IFS= read -r cond; do
         [ -z "$cond" ] && continue
+        local cond_label
+        cond_label=$(echo "$cond" | jq -r '.condition // "unknown"' 2>/dev/null)
         local keywords
         keywords=$(echo "$cond" | jq -r '.keywords[]' 2>/dev/null)
         local match=false
@@ -73,6 +105,9 @@ get_conditional_boost() {
         if $match; then
             while IFS= read -r boost_mod; do
                 [ -z "$boost_mod" ] && continue
+                local key="${cond_label}:${boost_mod}"
+                [ -n "${COND_BOOST_SEEN[$key]:-}" ] && continue
+                COND_BOOST_SEEN["$key"]=1
                 local current_prio="${MODULE_PRIORITY[$boost_mod]:-50}"
                 local new_prio=$((current_prio - PRIORITY_RULES_BOOST - 5))
                 [ "$new_prio" -lt 1 ] && new_prio=1

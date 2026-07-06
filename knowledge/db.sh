@@ -7,7 +7,7 @@ DB_PATH="${KNOWLEDGE_DIR}/knowledge.db"
 
 db_init() {
     sqlite3 "$DB_PATH" < "${KNOWLEDGE_DIR}/schema.sql" 2>/dev/null
-    db_log "DB" "init" "Database initialized at $DB_PATH"
+    db_log "DB" "Database initialized at $DB_PATH"
 }
 
 db_query() {
@@ -80,7 +80,20 @@ db_workflow_insert() {
 
 db_workflows_for_filetype() {
     local file_type="$1" limit="${2:-10}"
-    db_query "SELECT DISTINCT wf.action, wf.tool, wf.parameters, COUNT(*) as freq FROM workflows wf JOIN knowledge k ON wf.writeup_id = k.writeup_id AND k.knowledge_type='file_type' AND k.value='$file_type' GROUP BY wf.tool, wf.action ORDER BY freq DESC LIMIT $limit"
+    local ft_lower=$(echo "$file_type" | tr '[:upper:]' '[:lower:]')
+    db_query "SELECT DISTINCT wf.action, wf.tool, wf.parameters, COUNT(*) as freq FROM workflows wf JOIN knowledge k ON wf.writeup_id = k.writeup_id AND k.knowledge_type='file_type' AND LOWER(k.value)='$ft_lower' GROUP BY wf.tool, wf.action ORDER BY freq DESC LIMIT $limit"
+}
+
+db_workflow_chains() {
+    local file_type="$1" limit="${2:-5}"
+    local ft_lower=$(echo "$file_type" | tr '[:upper:]' '[:lower:]')
+    db_query "SELECT w1.tool as tool1, w1.action as action1, w2.tool as tool2, w2.action as action2, COUNT(*) as freq FROM workflows w1 JOIN workflows w2 ON w1.writeup_id = w2.writeup_id AND w2.step_order = w1.step_order + 1 WHERE w1.tool != '' AND w2.tool != '' AND w1.writeup_id IN (SELECT DISTINCT k.writeup_id FROM knowledge k WHERE k.knowledge_type='file_type' AND LOWER(k.value)='$ft_lower') GROUP BY w1.tool, w2.tool ORDER BY freq DESC LIMIT $limit"
+}
+
+db_workflow_top_tools() {
+    local file_type="$1" limit="${2:-5}"
+    local ft_lower=$(echo "$file_type" | tr '[:upper:]' '[:lower:]')
+    db_query "SELECT wf.tool, COUNT(*) as freq FROM workflows wf WHERE wf.writeup_id IN (SELECT DISTINCT k.writeup_id FROM knowledge k WHERE k.knowledge_type='file_type' AND LOWER(k.value)='$ft_lower') GROUP BY wf.tool ORDER BY freq DESC LIMIT $limit"
 }
 
 # ─── Statistics ───
@@ -105,6 +118,15 @@ db_stats_update() {
         local sc=0; [ "$success" = "1" ] && sc=1
         db_exec "INSERT INTO statistics(file_type,tool,technique,success_count,total_count) VALUES('$file_type','$tool','$technique',$sc,1)"
     fi
+}
+
+db_stats_worst_for() {
+    local file_type="$1" limit="${2:-5}"
+    local ft_query="file_type='$file_type'"
+    case "$file_type" in
+        jpg|jpeg) ft_query="(file_type='jpg' OR file_type='jpeg')" ;;
+    esac
+    db_query "SELECT tool, technique, confidence, total_count FROM statistics WHERE $ft_query AND total_count > 2 ORDER BY confidence ASC, total_count DESC LIMIT $limit"
 }
 
 db_stats_best_for() {
@@ -140,16 +162,6 @@ db_source_get() {
     db_query "SELECT * FROM sources WHERE id=$id" | head -1
 }
 
-# ─── Evidence ───
-
-db_evidence_add() {
-    local session="$1" decision="$2" reason="$3" sources="${4:-}"
-    decision=$(echo "$decision" | sed "s/'/''/g")
-    reason=$(echo "$reason" | sed "s/'/''/g")
-    sources=$(echo "$sources" | sed "s/'/''/g")
-    db_exec "INSERT INTO evidence(session_id,decision,reason,sources) VALUES('$session','$decision','$reason','$sources')"
-}
-
 # ─── Sync Log ───
 
 db_sync_start() {
@@ -164,6 +176,59 @@ db_sync_finish() {
     db_exec "UPDATE sources SET last_sync=datetime('now') WHERE id=(SELECT source_id FROM sync_log WHERE id=$log_id)"
 }
 
+# ─── Evidence ───
+
+db_evidence_add() {
+    local session="$1" decision="$2" reason="$3" sources="${4:-}"
+    decision=$(echo "$decision" | sed "s/'/''/g")
+    reason=$(echo "$reason" | sed "s/'/''/g")
+    sources=$(echo "$sources" | sed "s/'/''/g")
+    db_exec "INSERT INTO evidence(session_id,decision,reason,sources) VALUES('$session','$decision','$reason','$sources')"
+}
+
+# ─── Advanced Page Detection ───
+
+_db_content_is_captcha() {
+    local content="$1"
+    echo "$content" | grep -qiE '(recaptcha|cf-turnstile|hcaptcha|g-recaptcha|captcha|challenge-platform)' >/dev/null 2>&1
+}
+
+_db_content_is_login() {
+    local content="$1"
+    echo "$content" | grep -qiE '(login|sign.in|signin|log.in|log_in|authenticate|please.log)' >/dev/null 2>&1
+    local has_form=$(echo "$content" | grep -ci '<input.*type.?=.?["'"'"']password['"''"']' 2>/dev/null)
+    [ "$has_form" -gt 0 ] && return 0
+    return 1
+}
+
+_db_content_is_404() {
+    local content="$1"
+    echo "$content" | grep -qiE '(404|not.found|page.not.found|doesn.t.exist|couldn.t.be.found)' >/dev/null 2>&1
+}
+
+_db_content_is_blocked() {
+    local content="$1"
+    _db_writeup_is_unfetchable "$content" && return 0
+    _db_content_is_captcha "$content" && return 0
+    _db_content_is_login "$content" && return 0
+    _db_content_is_404 "$content" && return 0
+    return 1
+}
+
+# ─── Maintenance ───
+
+_db_writeup_is_unfetchable() {
+    local summary="$1"
+    echo "$summary" | grep -qi "Just a moment" >/dev/null 2>&1
+}
+
+db_writeup_report_garbage() {
+    local count_bad=$(db_query "SELECT COUNT(*) FROM writeups WHERE category='unknown'")
+    local count_cloudflare=$(db_query "SELECT COUNT(*) FROM writeups WHERE summary LIKE '%Just a moment%'")
+    local count_total=$(db_query "SELECT COUNT(*) FROM writeups")
+    echo "  [KB] Writeups: $count_total total, $count_bad unknown category, $count_cloudflare Cloudflare-blocked"
+}
+
 # ─── Stats ───
 
 db_stats_overview() {
@@ -171,7 +236,7 @@ db_stats_overview() {
     local k_count=$(db_query "SELECT COUNT(*) FROM knowledge" | head -1)
     local wf_count=$(db_query "SELECT COUNT(*) FROM workflows" | head -1)
     local s_count=$(db_query "SELECT COUNT(*) FROM sources" | head -1)
-    local ft_count=$(db_query "SELECT COUNT(DISTINCT file_type) FROM statistics WHERE total_count > 0" | head -1)
+    local ft_count=$(db_query "SELECT DISTINCT file_type FROM statistics WHERE total_count > 0" | head -1)
     echo "Writeups: $w_count"
     echo "Knowledge entries: $k_count"
     echo "Workflows: $wf_count"

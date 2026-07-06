@@ -15,7 +15,7 @@ analyze_exif_thumbnail() {
     local thumb_dir="$OUTDIR/thumbnails"
     mkdir -p "$thumb_dir"
     local thumb_file="$thumb_dir/$(basename "$f")_thumb.jpg"
-    exiftool -b -ThumbnailImage "$f" > "$thumb_file" 2>/dev/null
+    run_cmd exiftool -b -ThumbnailImage "$f" > "$thumb_file"
 
     if [ -f "$thumb_file" ] && [ -s "$thumb_file" ]; then
         info "Extracted $thumb_size-byte thumbnail: $thumb_file"

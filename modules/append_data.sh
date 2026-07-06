@@ -48,7 +48,7 @@ while IFS= read -r result; do
     info "Found $extra_len bytes after $marker marker (offset $offset)"
 
     local outfile="${OUTDIR}/carved/after_${marker}_data.bin"
-    dd if="$f" bs=1 skip="$offset" 2>/dev/null > "$outfile"
+    run_cmd dd if="$f" bs=1 skip="$offset" > "$outfile"
 
     if [ -f "$outfile" ] && [ -s "$outfile" ]; then
         local magic=$(xxd -l 4 -p "$outfile" 2>/dev/null)

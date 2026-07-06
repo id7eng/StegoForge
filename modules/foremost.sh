@@ -10,7 +10,7 @@ analyze_foremost() {
     header "Foremost" "File Carving"
     if command -v foremost &>/dev/null; then
         local d="${OUTDIR}/carved/foremost"
-        foremost -o "$d" "$f" >/dev/null 2>&1
+        run_cmd foremost -o "$d" "$f" >/dev/null 2>&1
         local n=$(find "$d" -type f 2>/dev/null | wc -l)
         [ "$n" -gt 1 ] && emit "carved_file" "$((n-1)) files carved" || info "Nothing extra found"
     else info "foremost not installed"; fi

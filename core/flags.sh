@@ -1,4 +1,3 @@
-CONFIG_DIR="${TOOL_DIR}/config"
 declare -a FLAG_PATTERNS
 
 load_flag_patterns() {

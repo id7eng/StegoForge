@@ -2,21 +2,52 @@
 # StegoForge Knowledge — Sync Engine
 # ─────────────────────────────────────────────
 
+_stego_modules_list() {
+    local mod_dir="${TOOL_DIR}/modules"
+    if [ -d "$mod_dir" ]; then
+        for f in "$mod_dir"/*.sh; do
+            [ -f "$f" ] && basename "$f" .sh
+        done
+    else
+        echo "strings exiftool binwalk foremost steghide stegseek zsteg outguess jphide f5 stegdetect pngcheck pngcrc zlib xxd hexdump dd file grep awk sed sort uniq base64 base32 openssl gpg john hashcat fcrackzip zipinfo unzip tar 7z pngcrush optipng exiv2 identify convert sox audacity wavestego mp3stego spectrum sstv qr zbar python3 perl ruby java wireshark tshark tcpdump volatility sleuthkit dcfldd guymager testdisk photorec scalpel bulk_extractor"
+    fi
+}
+
+_writeup_is_relevant() {
+    local content="$1"
+    [ -z "$content" ] && return 1
+    local tools=$(extract_tools "$content" 2>/dev/null)
+    local techniques=$(extract_techniques "$content" 2>/dev/null)
+    [ -z "$tools" ] && [ -z "$techniques" ] && return 1
+    while IFS= read -r mod; do
+        [ -z "$mod" ] && continue
+        if echo "$tools" | grep -qi "$mod" 2>/dev/null || echo "$techniques" | grep -qi "$mod" 2>/dev/null; then
+            return 0
+        fi
+    done < <(_stego_modules_list 2>/dev/null)
+    return 1
+}
+
 sync_all() {
-    db_log "SYNC" "Starting full sync..."
+    local max_total="${1:-10}"
+    db_log "SYNC" "Starting full sync (max $max_total writeups)..."
     local sources=$(db_source_list)
     local count=0
+    local total_imported=0
     while IFS='|' read -r id name stype url enabled last_sync; do
         [ -z "$id" ] && continue
         [ "$enabled" = "0" ] && { db_log "SYNC" "Skipping disabled source: $name"; continue; }
-        sync_source "$id" "$stype" "$url"
+        local remaining=$(( max_total - total_imported ))
+        [ "$remaining" -le 0 ] && break
+        sync_source "$id" "$stype" "$url" "$remaining"
+        total_imported=$((total_imported + remaining))
         count=$((count + 1))
     done <<< "$sources"
-    db_log "SYNC" "Finished syncing $count sources"
+    db_log "SYNC" "Finished syncing $count sources, total imported: $total_imported"
 }
 
 sync_source() {
-    local source_id="$1" source_type="$2" source_url="$3"
+    local source_id="$1" source_type="$2" source_url="$3" max_items="${4:-10}"
 
     db_log "SYNC" "Syncing source #$source_id ($source_type: $source_url)"
     local log_id=$(db_sync_start "$source_id")
@@ -26,6 +57,7 @@ sync_source() {
 
     while IFS='|' read -r item_url item_name repo_name; do
         [ -z "$item_url" ] && continue
+        [ "$imported" -ge "$max_items" ] && { db_log "SYNC" "Reached max $max_items for this source"; break; }
         found=$((found + 1))
 
         # Skip if already imported (by URL)
@@ -36,6 +68,12 @@ sync_source() {
         # Fetch content
         local content=$(connector_run "$source_id" "$source_type" "$source_url" "fetch" "$item_url" 2>/dev/null)
         [ -z "$content" ] && continue
+
+        # Skip blocked/protected pages
+        if _db_content_is_blocked "$content" 2>/dev/null; then
+            db_log "SYNC" "Skipping blocked page: $item_url"
+            continue
+        fi
 
         # Generate hash for dedup
         local hash=$(echo "$content" | md5sum | cut -d' ' -f1)
@@ -51,6 +89,12 @@ sync_source() {
         local summary=$(echo "$parsed" | grep "^SUMMARY:" | sed 's/^SUMMARY://')
         local writeup_body=$(echo "$parsed" | sed -n '/^---CONTENT---$/,$ p' | tail -n +2)
 
+        # Relevance filter: skip if no tools/techniques match our modules
+        if ! _writeup_is_relevant "$writeup_body" 2>/dev/null; then
+            db_log "SYNC" "Skipping irrelevant: $item_url"
+            continue
+        fi
+
         # Insert writeup
         db_writeup_insert "$title" "$challenge" "$category" "$item_url" "$hash" "$pub_date" "$summary"
 
@@ -65,7 +109,7 @@ sync_source() {
     done <<< "$items"
 
     db_sync_finish "$log_id" "success" "$found" "$imported"
-    db_log "SYNC" "Source #$source_id: $found found, $imported imported"
+    db_log "SYNC" "Source #$source_id: $found found, $imported imported (max $max_items)"
 }
 
 import_knowledge() {

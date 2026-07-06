@@ -16,7 +16,7 @@ analyze_binwalk() {
     if command -v binwalk &>/dev/null; then
         local bw=$(binwalk "$f" 2>/dev/null | grep -v '^$\|Scan Time\|Target\|MD5\|Signatures\|DECIMAL')
         [ -n "$bw" ] && emit "embedded_file" "Embedded files detected"
-        binwalk -Me "$f" -C "${OUTDIR}/carved" >/dev/null 2>&1
+        run_cmd binwalk -Me "$f" -C "${OUTDIR}/carved" >/dev/null 2>&1
         local d="${OUTDIR}/carved/_$(basename "$f").extracted"
         [ -d "$d" ] && $QUIET || info "$(find "$d" -type f 2>/dev/null | wc -l) extracted"
     else info "binwalk not installed"; fi

@@ -27,7 +27,7 @@ analyze_base64_full() {
     local data=$(tr -d '[:space:]' < "$f" 2>/dev/null)
     local outfile="${OUTDIR}/carved/base64_decoded.bin"
 
-    echo "$data" | base64 -d 2>/dev/null > "$outfile"
+    echo "$data" | run_cmd base64 -d > "$outfile"
     if [ -f "$outfile" ] && [ -s "$outfile" ]; then
         local outsize=$(stat -c%s "$outfile")
         info "Decoded $size bytes → $outsize bytes ($outfile)"
@@ -42,7 +42,7 @@ analyze_base64_full() {
             25504446) detected="PDF document" ;;
             424d) detected="BMP image" ;;
         esac
-        [ -n "$detected" ] && emit "reconstructed" "Base64 → $detected ($outfile)" || emit "reconstructed" "Base64 → unknown format ($outfile)"
+        [ -n "$detected" ] && emit_finding "reconstructed" "Base64 → $detected ($outfile)" || emit_finding "reconstructed" "Base64 → unknown format ($outfile)"
         run_workflow "$outfile"
     else
         info "Base64 decode produced no output (empty or invalid)"

@@ -5,6 +5,25 @@ MD_DEPS="python3"
 MD_PRIORITY=80
 MD_PRODUCES="xor_key decoded"
 
+xor_bruteforce_string() {
+    local s="$1"
+    local ks="${2:-0}" ke="${3:-255}"
+    [ ${#s} -lt 4 ] && return 1
+    local result=$(XOR_BF_STR="$s" XOR_BF_KS="$ks" XOR_BF_KE="$ke" python3 -c "
+import os, sys
+s = os.environ['XOR_BF_STR']
+kw = ['picoCTF{','flag{','CTF{','HTB{','THM{','FLAG{','NCSE{','shellctf{','hacker101{','flag','ctf','secret','key','password','FLAG','CTF','NCSE','PICO']
+for k in range(int(os.environ['XOR_BF_KS']), int(os.environ['XOR_BF_KE']) + 1):
+    d = ''.join(chr(b ^ k) for b in s.encode())
+    for w in kw:
+        if w in d:
+            print(d)
+            sys.exit(0)
+" 2>/dev/null)
+    [ -z "$result" ] && return 1
+    echo "$result"
+}
+
 analyze_xor_brute() {
     local f="$1"
     header "XOR Brute" "Single-byte XOR key search"
@@ -14,25 +33,10 @@ analyze_xor_brute() {
 
     if [ -n "$targets" ]; then
         while IFS= read -r s; do
-            [ ${#s} -lt 4 ] && continue
-            export XOR_STRING="$s"
-            local result=$(python3 -c "
-import os, sys
-s = os.environ['XOR_STRING']
-kw = ['flag', 'ctf', 'ncse', 'pico', 'secret', 'key', 'password', 'FLAG', 'CTF', 'NCSE', 'PICO']
-for k in range(256):
-    d = ''.join(chr(b ^ k) for b in s.encode())
-    for w in kw:
-        if w in d:
-            safe = d.replace(\"'\", \"'\").replace('\$', ' ')
-            print(f'KEY:0x{k:02x} DATA:{safe}')
-            sys.exit(0)
-" 2>/dev/null)
-            unset XOR_STRING
+            local result=$(xor_bruteforce_string "$s" 0 255)
             [ -n "$result" ] && {
-                emit "xor_key" "${result#KEY:}"
-                local data="${result#*DATA:}"
-                echo "$data" | grep -qiE 'flag|ctf|ncse|pico' && emit "decoded" "XOR decoded: $data"
+                emit_xor_key "Key found for: ${result:0:40}..."
+                echo "$result" | grep -qiE 'flag|ctf|ncse|pico' && emit_finding "decoded" "XOR decoded: $result"
             }
         done <<< "$targets"
     fi
@@ -54,9 +58,9 @@ for k in range(256):
 " 2>/dev/null)
     unset XOR_FILE
     if [ -n "$raw_result" ]; then
-        emit "xor_key" "Raw XOR: ${raw_result#KEY:}"
+        emit_xor_key "Raw XOR: ${raw_result#KEY:}"
         local raw_data="${raw_result#*DATA:}"
-        echo "$raw_data" | grep -qiE 'flag|ctf|ncse|pico' && emit "decoded" "XOR decoded: $raw_data"
+        echo "$raw_data" | grep -qiE 'flag|ctf|ncse|pico' && emit_finding "decoded" "XOR decoded: $raw_data"
     else
         info "No XOR key found"
     fi

@@ -86,13 +86,26 @@ analyze_smart_wordlist() {
         done < <(echo "$str_out" | grep -oiE '(password|pass|key|secret) *[:=] *[A-Za-z0-9_!@#$%^&*]{4,}' | head -20)
     fi
 
-    # ── Layer 4: Load config files ──
+    # ── Layer 4: Knowledge Base passwords ──
+    local kb_db="${KNOWLEDGE_DIR}/knowledge.db"
+    if [ -f "$kb_db" ]; then
+        local kb_passwords=$(sqlite3 -separator '|' "$kb_db" "SELECT value, confidence FROM knowledge WHERE knowledge_type='password' AND value != '' GROUP BY value ORDER BY confidence DESC LIMIT 50" 2>/dev/null)
+        if [ -n "$kb_passwords" ]; then
+            while IFS='|' read -r value conf; do
+                [ -z "$value" ] && continue
+                local weight=$(echo "$conf * 100 / 1" | bc 2>/dev/null || echo 70)
+                echo "$weight $value" >> "$tmp_wl"
+                gen_variations "$value" "$weight" >> "$tmp_wl"
+            done <<< "$kb_passwords"
+        fi
+    fi
 
-    # passwords_generated.conf (created here if not exists)
+    # ── Layer 5: Load config files ──
+
     local gen_file="${PASS_DIR}/passwords_generated.conf"
     [ ! -f "$gen_file" ] && touch "$gen_file"
 
-    for cfg in "$PASS_DIR/passwords_ctf.conf" "$PASS_DIR/passwords_formats.conf" "$PASS_DIR/passwords.conf" "$PASS_DIR/passwords_user.conf" "$gen_file"; do
+    for cfg in "$PASS_DIR/passwords.conf" "$gen_file"; do
         [ -f "$cfg" ] && cat "$cfg" >> "$tmp_wl"
     done
 

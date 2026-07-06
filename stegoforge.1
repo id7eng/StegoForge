@@ -1,0 +1,151 @@
+.TH STEGOFORGE 1 "2026-07-05" "v1.3.4" "CTF Toolkit"
+.SH NAME
+stegoforge \- automated steganography & forensics toolkit for CTF challenges
+.SH SYNOPSIS
+.B stegoforge
+[OPTIONS]
+.I <file|directory>
+.SH DESCRIPTION
+StegoForge runs multiple analysis modules on the target file to detect hidden
+data, extract embedded content, and identify CTF flags. When a flag is found,
+analysis stops immediately and the flag is printed.
+
+.SH OUTPUT MODES
+.TP
+.B normal (default)
+Only the final flag or "No flag found" is printed.
+.TP
+.B \-v, \-\-verbose
+Show module headers and findings (keywords, flags, decoded data) during
+analysis. Each finding is prefixed with a
+.RB \(bu
+symbol.
+.TP
+.B \-vv, \-\-vv
+Show every external command executed by the analysis modules. Commands are
+numbered sequentially. Useful for understanding exactly what the tool does.
+.TP
+.B \-\-json
+Print results as a JSON object with file, flags, count, and output fields.
+.TP
+.B \-\-summary
+Print a one-line summary per file in the format:
+.RS
+file.png \(rarr Flag: picoCTF{...}
+.RE
+
+.SH OPTIONS
+.TP
+.B \-v, \-\-verbose
+Show module progress, findings, and results during analysis.
+.TP
+.B \-vv, \-\-vv
+Show external tool commands as they are executed.
+.TP
+.B \-r, \-\-recursive
+If the target is a directory, scan all files recursively.
+.TP
+.B \-o, \-\-output \fIdir\fR
+Specify output directory (default: output/sessions/PID).
+.TP
+.B \-w, \-\-wordlist \fIfile\fR
+Password list for brute-force attacks (steghide, zip, fcrackzip).
+.TP
+.B \-l, \-\-list
+List all available modules with priority, supported file types, and
+what they produce.
+.TP
+.B \-\-json
+Print results as JSON.
+.TP
+.B \-\-summary
+Print compact one-line summary.
+.TP
+.B \-\-readonly
+Work on a temporary copy. Original file is not modified.
+.TP
+.B \-\-docker
+Force execution inside a Docker container. Automatically falls back to
+Docker if native tools are missing.
+.TP
+.B \-\-doctor
+Check whether all required dependencies are installed.
+.TP
+.B \-h, \-\-help
+Show brief help and exit.
+
+.SH MODULE SYSTEM
+StegoForge uses a priority-based module system. Each module:
+.IP \(bu 3
+targets specific file types (e.g. png, jpg, *, txt)
+.IP \(bu 3
+produces typed findings (keyword, flag, base64_string, reconstructed, etc.)
+.IP \(bu 3
+can be triggered by findings from other modules via the pipeline system
+
+Use
+.B \-l
+to list all modules with their priority, types, and products.
+
+.SH RECURSIVE ANALYSIS
+When the target is a directory and
+.B \-r
+is given, all files in the directory are analyzed. Files extracted by
+binwalk, foremost, or other carving tools are automatically re-analyzed
+up to 2 levels deep.
+
+.SH REPAIR
+Corrupted files (truncated headers, CRC mismatches) are detected and
+automatically repaired when possible. Repaired files are saved to
+.IR output/sessions/PID/repaired/
+and re-analyzed.
+
+.SH EXAMPLES
+.TP
+.B stegoforge image.png
+Analyze image.png, print the flag.
+.TP
+.B stegoforge \-v image.jpg
+Analyze with module progress visible.
+.TP
+.B stegoforge \-vv image.png
+Analyze and show every command being executed.
+.TP
+.B stegoforge \-\-json \-r ~/challenges/
+Recursively scan a directory, output JSON.
+.TP
+.B stegoforge \-w rockyou.txt image.jpg
+Use a wordlist for steghide password cracking.
+.TP
+.B stegoforge \-\-readonly corrupted.bin
+Analyze without modifying the original file.
+
+.SH FILES
+.TP
+.I output/sessions/PID/
+Default output directory.
+.TP
+.I output/sessions/PID/carved/
+Extracted and carved files (foremost, binwalk, dd).
+.TP
+.I output/sessions/PID/repaired/
+Repaired versions of corrupted files.
+.TP
+.I output/sessions/PID/pipeline/
+Intermediate data for pipeline-triggered modules.
+
+.SH ENVIRONMENT
+.TP
+.B STEGOFORGE_TEST
+If set to 1, pipeline processing and recursive extraction are disabled
+(used by the test suite).
+
+.SH BUGS
+Report issues at https://github.com/anomalyco/opencode/issues
+.SH SEE ALSO
+.BR strings (1),
+.BR zsteg (1),
+.BR exiftool (1),
+.BR steghide (1),
+.BR binwalk (1),
+.BR foremost (1)

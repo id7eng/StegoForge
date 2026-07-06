@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    type TEXT NOT NULL CHECK(type IN ('github','blog','local','pdf','rss','manual')),
+    type TEXT NOT NULL CHECK(type IN ('github','blog','local','pdf','rss','manual','ctftime')),
     url TEXT,
     enabled INTEGER DEFAULT 1,
     sync_interval INTEGER DEFAULT 86400,
@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS sources (
 
 CREATE TABLE IF NOT EXISTS writeups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    source_id INTEGER REFERENCES sources(id),
     title TEXT,
     challenge_name TEXT,
     category TEXT,
@@ -53,22 +52,6 @@ CREATE TABLE IF NOT EXISTS workflows (
     created_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS statistics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_type TEXT NOT NULL,
-    tool TEXT,
-    technique TEXT,
-    success_count INTEGER DEFAULT 0,
-    total_count INTEGER DEFAULT 0,
-    confidence REAL GENERATED ALWAYS AS (
-        CASE WHEN total_count > 0
-        THEN CAST(success_count AS REAL) / total_count
-        ELSE 0 END
-    ) STORED,
-    last_updated TEXT DEFAULT (datetime('now')),
-    UNIQUE(file_type, tool, technique)
-);
-
 CREATE TABLE IF NOT EXISTS evidence (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id TEXT NOT NULL,
@@ -89,6 +72,22 @@ CREATE TABLE IF NOT EXISTS sync_log (
     finished_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS statistics (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_type TEXT NOT NULL,
+    tool TEXT,
+    technique TEXT,
+    success_count INTEGER DEFAULT 0,
+    total_count INTEGER DEFAULT 0,
+    confidence REAL GENERATED ALWAYS AS (
+        CASE WHEN total_count > 0
+        THEN CAST(success_count AS REAL) / total_count
+        ELSE 0 END
+    ) STORED,
+    last_updated TEXT DEFAULT (datetime('now')),
+    UNIQUE(file_type, tool, technique)
+);
+
 CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge(knowledge_type);
 CREATE INDEX IF NOT EXISTS idx_knowledge_key ON knowledge(key);
 CREATE INDEX IF NOT EXISTS idx_knowledge_writeup ON knowledge(writeup_id);
@@ -96,3 +95,5 @@ CREATE INDEX IF NOT EXISTS idx_workflows_writeup ON workflows(writeup_id);
 CREATE INDEX IF NOT EXISTS idx_statistics_ft ON statistics(file_type);
 CREATE INDEX IF NOT EXISTS idx_writeups_category ON writeups(category);
 CREATE INDEX IF NOT EXISTS idx_writeups_challenge ON writeups(challenge_name);
+CREATE INDEX IF NOT EXISTS idx_evidence_session ON evidence(session_id);
+CREATE INDEX IF NOT EXISTS idx_sync_log_source ON sync_log(source_id);

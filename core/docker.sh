@@ -35,13 +35,10 @@ docker_run_analyze() {
     mkdir -p "$OUTDIR"
     local outdir_real=$(realpath "$OUTDIR")
 
-    mkdir -p "$HOME/Downloads"
-
     docker run --rm \
         -v "$f_dir:/work:ro" \
         -v "$outdir_real:/output" \
-        -v "$HOME/Downloads:/Downloads" \
-        -e "HOME=/root" \
+        -e "OUTDIR=/output" \
         "$DOCKER_IMAGE" \
         "${args[@]}" "/work/$f_base" 2>/dev/null
 }

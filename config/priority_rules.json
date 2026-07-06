@@ -3,7 +3,7 @@
   "file_rules": {
     "png": {
       "base_boost": 10,
-      "tool_priority": ["zsteg", "png_check", "png_crc", "binwalk", "strings", "metadata", "bit_plane", "binary_border", "fft_domain"],
+      "tool_priority": ["strings", "metadata", "ocr", "image_magick", "zsteg", "png_check", "png_crc", "binwalk", "bit_plane", "binary_border", "fft_domain"],
       "conditional_priority": [
         {
           "condition": "trailing",
