@@ -58,9 +58,7 @@ de_evaluate() {
         lp_track_rule_fire "$rule"
     done
 
-    if [ "${VERBOSE_CMD:-false}" = true ]; then
-        de_trace_flush
-    fi
+    :
 }
 
 # ═══════════════════════════════════════════

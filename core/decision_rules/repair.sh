@@ -43,7 +43,7 @@ de_rule_confident_flag_stop() {
     local _cf
     for _cf in "${CONFIDENT_FINDINGS[@]}"; do
         local _cf_mod="${_cf%%|*}" _rest="${_cf#*|}" _cf_conf="${_rest%%|*}"
-        [ "$_cf_conf" -ge 90 ] && { _high_conf_found=true; break; }
+        [[ "$_cf_conf" =~ ^[0-9]+$ ]] && [ "$_cf_conf" -ge 90 ] && { _high_conf_found=true; break; }
     done
     if $_high_conf_found; then
         de_stop

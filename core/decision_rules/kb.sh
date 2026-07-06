@@ -12,4 +12,5 @@ de_rule_kb_suggestions() {
     done
     dt_matched "kb_suggestions_rule"
     dt_reason "knowledge base suggests these modules for this file type"
+    _DECIDE_KB_HINT=()
 }

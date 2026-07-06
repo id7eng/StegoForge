@@ -135,17 +135,21 @@ run_workflow() {
 
         if $should_run; then
             [ "$QUIET" = false ] && echo -e "\n${C}── ${W}${MODULE_DISPLAY[$name]}${N}${C} ──${N}"
+            $VERBOSE_CMD && echo -e "${C}  ▶${N} ${W}${MODULE_DISPLAY[$name]:-$name}${N} ${DIM}running...${N}" >&2
             if command -v "analyze_$name" &>/dev/null 2>&1; then
                 CURRENT_MODULE="$name"
                 "analyze_$name" "$f" "$wl"
                 local _mod_exit=$?
                 CURRENT_MODULE=""
                 lp_track_module_run "$name"
+                $VERBOSE_CMD && echo -e "  ${G}✓${N} ${W}${MODULE_DISPLAY[$name]:-$name}${N} ${DIM}done (exit=$_mod_exit)${N}" >&2
                 if [ -f "${KNOWLEDGE_DIR}/knowledge.db" ] && command -v db_stats_update &>/dev/null 2>&1; then
                     local _kb_ftype=$(echo "$ftype_raw" | awk '{print tolower($1)}')
                     local _kb_ok=0; [ "$_mod_exit" -eq 0 ] && _kb_ok=1
                     db_stats_update "$_kb_ftype" "$name" "$name" "$_kb_ok"
                 fi
+            else
+                $VERBOSE_CMD && echo -e "  ${R}✗${N} ${W}${MODULE_DISPLAY[$name]:-$name}${N} ${DIM}no analyze function${N}" >&2
             fi
 
             process_pipeline "$f" "$wl"
@@ -200,7 +204,9 @@ run_workflow() {
             for _de_mod in "${_DECIDE_SKIP[@]}"; do
                 [[ " ${run_done[@]} " =~ " $_de_mod " ]] || run_done+=("$_de_mod")
             done
-            $_DECIDE_STOP && break
+            $_DECIDE_STOP && { $VERBOSE_CMD && echo -e "  ${R}⏹${N} ${DIM}pipeline stopped by decision engine${N}" >&2; break; }
+        else
+            $VERBOSE_CMD && echo -e "  ${DIM}⏭ ${MODULE_DISPLAY[$name]:-$name} (type: $types ≠ $ftype_raw)${N}" >&2
         fi
 
         : $((max_iter--))
@@ -232,7 +238,6 @@ analyze_file() {
         local _kb_before=$(for n in "${MODULE_NAMES[@]}"; do echo "${MODULE_PRIORITY[$n]:-50}:$n"; done | sort)
         inference_boost_priorities "$ftype_raw" 2>/dev/null
         local _kb_after=$(for n in "${MODULE_NAMES[@]}"; do echo "${MODULE_PRIORITY[$n]:-50}:$n"; done | sort)
-        [ "$_kb_before" != "$_kb_after" ] && _DECIDE_KB_HINT+=("priorities adjusted by KB")
     fi
 
     MODULE_PRIORITY_ORDER=($(
