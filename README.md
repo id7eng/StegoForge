@@ -1,26 +1,14 @@
 
-```
-   _________ __        ________                   
-  /   _____/  |_____  \_____  \___  ___  ___  ___ 
-  \_____  \|  |  \__  \ /  ____/  / /  /  /  \  \
-  /        \   |  / __ \ >     <  / /  /  /   >   \
- /_______  /___| (____  /___/\  \/ /  /  /___/  /\  \
-         \/     \/     \/      \_/           \/  \_/
-```
+   _____ __                   ______                    
+  / ___// /____  ____ _____  / ____/___  _________ ____ 
+  \__ \/ __/ _ \/ __ `/ __ \/ /_  / __ \/ ___/ __ `/ _ \
+ ___/ / /_/  __/ /_/ / /_/ / __/ / /_/ / /  / /_/ /  __/
+/____/\__/\___/\__, /\____/_/    \____/_/   \__, /\___/ 
+              /____/                       /____/       
 
-# StegoForge — v1.3.3
+# StegoForge **v2.0.0** — CTF Steganography & Forensics Toolkit
 
-**The All-in-One CTF Steganography & Forensics Arsenal**
-
-46 modules · 25+ formats · Smart workflow · Auto-detect · Auto-repair · No AI
-
-```
-stegoforge image.png          →  flag / partial flag
-stegoforge -v image.jpg       →  full forensic report
-stegoforge -r ~/CTF/          →  recursive directory scan
-stegoforge --json file.png    →  structured JSON output
-stegoforge --doctor           →  check installed tools
-```
+49 analysis modules · Priority-based pipeline · Decision Engine · Knowledge Base · Event-driven architecture
 
 ---
 
@@ -29,154 +17,214 @@ stegoforge --doctor           →  check installed tools
 ```bash
 git clone https://github.com/id7eng/StegoForge.git
 cd StegoForge && chmod +x install.sh && ./install.sh
-stegoforge suspicious.png
+stegoforge image.png
 ```
 
-*No root?* Every module auto-skips if tools are missing. Run `stegoforge --doctor` to see what's available.
-
 ---
 
-## Features
+## What's New in v2.0
 
-| Category | Feature | What it does |
-|----------|---------|-------------|
-| **🔍 Smart Analysis** | Polyglot Detection | Catches magic-byte vs extension mismatch, strips appended data, saves clean copy to `~/Downloads/` |
-| | Auto-Repair | Fixes broken PNG IHDR CRCs, JPEG SOI markers, missing magic bytes |
-| | Re-Analysis Loop | After repair, engine re-scans the fixed file |
-| | Partial Flag Detection | Catches flag fragments and tails when full patterns don't match |
-| | OCR Auto-Scale | Auto-upscales tiny images before Tesseract OCR |
-| **⚙️ Workflow Engine** | Event System | Modules `emit()` findings; others subscribed via `MD_TRIGGERS` react |
-| | Priority Dispatch | All 46 modules run in strict `MD_PRIORITY` order |
-| | Smart Wordlist | Parses metadata + strings + filename to build targeted passwords |
-| | Gzip Auto-Decompress | Auto-detects and decompresses gzip'd files |
-| **📊 Output** | Default | Clean flag / partial flag |
-| | `-v` | Full per-module verbose report |
-| | `--summary` | `file → flag` one-liner (ideal for `-r`) |
-| | `--json` | `{"file":"...", "flags":["..."], "status":"found\|partial\|empty"}` |
-| **🛡 Security** | Read-Only Mode | `--readonly` copies to `/tmp`; original never modified |
-| | Python Injection Protection | All paths via env vars, not string interpolation |
-| | No Pipe Subshells | Every `while read` uses `done < <(cmd)` — no data loss |
-| | Graceful Degradation | Missing deps = auto-skip, no crashes |
-| | Null-Byte Safety | `LC_ALL=C` + `tr -d '\0'` throughout |
-
----
-
-## 46 Modules
-
-### Universal (every file type — 16)
-
-| Pri | Module | Description |
-|-----|--------|-------------|
-| 1 | Repair | Fix corrupted magic bytes, PNG IHDR CRC, JPEG headers |
-| 2 | Polyglot Fixer | Detect magic-byte mismatch → fix, strip, save to `~/Downloads/` |
-| 5 | Smart Wordlist | Context-aware password generator from file data |
-| 7 | Binary Digits | Decode ASCII `0`/`1` text to binary |
-| 8 | Base64 Full | Decode base64 + hex-encoded base64 |
-| 10 | Strings | Keyword grep · auto base64/hex · flag + partial flag matching |
-| 11 | ROT Brute | Brute-force ROT1–25 + Atbash cipher |
-| 16 | EXIF Thumbnail | Extract & analyze embedded EXIF thumbnails |
-| 22 | OCR | Tesseract OCR with auto-upscale |
-| 28 | Append Data | Detect data appended after IEND / FFD9 / EOF |
-| 50 | PCAP Analysis | HTTP objects · DNS · TCP streams · IPv6 · BPF filters |
-| 52 | Disk Forensics | Loop-mount FAT/NTFS/ext4 images |
-| 60 | Binwalk | Detect & extract embedded files |
-| 70 | Foremost | File carving from raw images |
-| 80 | XOR Brute | Single-byte XOR key recovery (0x00–0xFF) |
-| 90 | ADS Scan | NTFS Alternate Data Stream enumeration |
-
-### Image Analysis (20)
-
-| Pri | Module | Formats | Description |
-|-----|--------|---------|-------------|
-| 12 | Video | mp4, avi, mov, mkv, webm | Frame extraction, QR, accumulation, differencing |
-| 14 | ImageMagick | jpg, png, bmp, gif, tiff, webp | Image properties, channel stats, metadata (identify) |
-| 15 | StegDetect | jpg, jpeg | Identify embedding tool (jphide, outguess, jsteg, F5) |
-| 20 | Metadata | jpg, png, bmp, gif, tiff, webp | Exif/ID3/XMP + acrostic analysis |
-| 23 | PNG Check | png | Chunk-level validation, detect private/unknown chunks (pngcheck) |
-| 25 | PNG CRC | png | CRC check + brute-force correct dimensions |
-| 30 | Zsteg | png, bmp | LSB steganography detection |
-| 35 | QR | jpg, jpeg, png, bmp, gif | QR / barcode scanning |
-| 36 | Stepic | png, bmp | LSB decode via stepic library |
-| 36 | PDF Images | pdf | Extract embedded raster images |
-| 37 | GIF Palette | gif | Per-frame palette analysis |
-| 38 | PDF Analysis | pdf | Decompression, comments, post-%%EOF data |
-| 39 | StegSeek | jpg, jpeg, bmp, wav | 100× faster steghide cracking |
-| 40 | Steghide | jpg, jpeg, bmp, wav | Data extraction + brute-force |
-| 42 | OutGuess | jpg, jpeg | OutGuess data extraction |
-| 43 | JPHide | jpg, jpeg | JPHide data extraction |
-| 44 | F5 | jpg, jpeg | F5 data extraction |
-| 45 | Bit Plane | png, bmp | Extract bit planes 0–7 as PNGs |
-| 46 | JPEG DQT | jpg, jpeg | LSB from unused quantization tables |
-| 47 | Binary Border | jpg, png, bmp, gif | Read border pixels clockwise as binary |
-| 49 | FFT Domain | jpg, png, bmp, gif | Frequency domain analysis |
-
-### Audio Analysis (5)
-
-| Pri | Module | Formats | Description |
-|-----|--------|---------|-------------|
-| 48 | MP3Stego | mp3 | Extract MP3Stego hidden data |
-| 50 | Spectrogram | wav, au, mp3 | Generate spectrogram image |
-| 51 | Audio Reverse | wav, mp3, au | Reverse audio + flag search |
-| 52 | SSTV | wav | Decode slow-scan television images |
-| 53 | DTMF | wav | Decode telephone tones (multimon-ng) |
-
-### Documents & Text (3)
-
-| Pri | Module | Formats | Description |
-|-----|--------|---------|-------------|
-| 32 | Snow | txt, html, css, js | Whitespace steganography decode |
-| 33 | Zero Width | txt, html, css, js | Detect zero-width Unicode characters |
-| 34 | OleVBA | doc, docx, xls, xlsx, ppt, pptx | Office macro analysis |
-
-### Archives (1)
-
-| Pri | Module | Formats | Description |
-|-----|--------|---------|-------------|
-| 55 | ZIP Brute | zip | Crack passwords (fcrackzip + unzip fallback) |
+| Feature | Description |
+|---------|-------------|
+| **Decision Engine** | Rule-based module selection per file type (image/audio/archive/crypto/repair) with confidence scoring |
+| **Priority System** | Two-level scheduling — static module priorities + dynamic file-type priority boosts |
+| **Pipeline Orchestrator** | Multi-phase pipeline: repair → knowledge-guided analysis → emit → decide → output |
+| **Knowledge Base** | SQLite-powered learning: stores tools per file type, tracks success rates, suggests optimal workflows |
+| **Confidence Scoring** | Blends hardcoded base with historical statistics for smarter module selection |
+| **Auto-Sync** | Automated writeup import from CTF sources, relevance-filtered against installed modules |
+| **Smart Wordlist (L4)** | Context-aware password generation from metadata, strings, and KB password history |
+| **Loop Guard** | Cycle detection prevents infinite re-analysis loops |
+| **Module API v2** | Event-driven: modules `emit()` typed findings, subscribed modules react via triggers |
 
 ---
 
 ## Architecture
 
 ```
-                    ┌──────────────┐
-                    │  stegoforge  │
-                    │  (entry)     │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  engine.sh   │
-                    │  (workflow)  │
-                    └──────┬───────┘
-                           │
-          ┌────────────────┼────────────────┐
-          │                │                │
-   ┌──────▼──────┐   ┌─────▼──────┐  ┌──────▼──────┐
-   │   Repair /  │   │  Priority  │  │   Feature   │
-   │   Polyglot  │   │  Scheduler │  │   Modules   │
-   └─────────────┘   └────────────┘  └─────────────┘
+                    ┌─────────────────────────────────┐
+                    │          stegoforge              │
+                    │         (entry point)            │
+                    └──────────────┬──────────────────┘
+                                   │
+                    ┌──────────────▼──────────────────┐
+                    │          engine.sh               │
+                    │    Workflow coordinator          │
+                    │  File detection · Loop guard     │
+                    └──────────────┬──────────────────┘
+                                   │
+                    ┌──────────────▼──────────────────┐
+                    │       orchestrator.sh            │
+                    │   Pipeline execution manager     │
+                    │  Phase 1-4 · KB-guided dispatch  │
+                    └───┬──────────┬──────────┬───────┘
+                        │          │          │
+             ┌──────────▼──┐  ┌────▼────┐  ┌─▼──────────┐
+             │  Priority   │  │ Decision│  │  Confidence │
+             │  System     │  │ Engine  │  │  Scoring    │
+             │  priority.sh│  │decision.│  │confidence.sh│
+             │  + boosts   │  │ sh+rules│  │             │
+             └─────────────┘  └─────────┘  └─────────────┘
+                        │          │
+             ┌──────────▼──────────▼────────────────────┐
+             │           49 Analysis Modules             │
+             │  Repair → Polyglot → Metadata → Steghide │
+             │  Zsteg → Foremost → Binwalk → XOR → ... │
+             │  Event-driven via emit()/MD_TRIGGERS     │
+             └────────────────┬─────────────────────────┘
+                              │
+             ┌────────────────▼─────────────────────────┐
+             │         Knowledge Base (SQLite)           │
+             │  Writeups · Statistics · Evidence · Sync  │
+             │  kbe.sh · sync.sh · db.sh · inference.sh │
+             └───────────────────────────────────────────┘
 ```
 
-**Pipeline:**
-1. **Repair** (pri 1-2): Fix headers, detect polyglot, save fixed copy
-2. **Prep** (pri 5): Smart wordlist, gzip decompress
-3. **Analyze** (pri 7-90): 46 modules run in priority order, emit events
-4. **Report**: Collect flags, output as default/json/summary
+### Pipeline Flow
+
+1. **Phase 1 — Repair**: Fix broken headers, CRC, polyglot detection
+2. **Phase 2 — Prep**: Smart wordlist generation, gzip decompress
+3. **Phase 3 — Analysis**: Priority-ordered execution with KB-guided suggestions
+4. **Phase 4 — Report**: Flag collection, JSON/summary/verbose output
+
+---
+
+## 49 Analysis Modules
+
+### Universal (16)
+
+| Pri | Module | Description |
+|-----|--------|-------------|
+| 1 | Repair | Fix corrupted magic bytes, PNG IHDR CRC, JPEG headers |
+| 2 | Polyglot Detector | Detect magic-byte mismatch → fix, strip, save clean copy |
+| 5 | Smart Wordlist | Context-aware password generator (4 layers) |
+| 7 | Binary Digits | Decode ASCII 0/1 text to binary |
+| 8 | Base64 Full | Decode base64 + hex-encoded base64 |
+| 10 | Strings | Keyword grep · auto base64/hex · flag patterns |
+| 11 | ROT Brute | Brute-force ROT1–25 + Atbash cipher |
+| 16 | EXIF Thumbnail | Extract & analyze embedded EXIF thumbnails |
+| 22 | OCR | Tesseract OCR with auto-upscale |
+| 28 | Append Data | Detect data appended after IEND/FFD9/EOF |
+| 50 | PCAP Analysis | HTTP objects · DNS · TCP streams · BPF filters |
+| 52 | Disk Forensics | Loop-mount FAT/NTFS/ext4 images |
+| 60 | Binwalk | Detect & extract embedded files |
+| 70 | Foremost | File carving from raw images |
+| 80 | XOR Brute | Single-byte XOR key recovery (0x00–0xFF) |
+| 90 | ADS Scan | NTFS Alternate Data Stream enumeration |
+| 99 | Flag Scanner | Aggressive flag pattern search across all data |
+
+### Image Analysis (22)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 12 | Video | mp4, avi, mov, mkv, webm | Frame extraction, QR, accumulation, differencing |
+| 13 | Quick Scan | jpg, png, bmp, gif | Rapid heuristic pre-scan |
+| 14 | ImageMagick | jpg, png, bmp, gif, tiff, webp | Image properties, channel stats |
+| 15 | StegDetect | jpg, jpeg | Identify embedding tool |
+| 17 | Cross LSB | png, bmp | Cross-color LSB analysis |
+| 20 | Metadata | jpg, png, bmp, gif, tiff, webp | Exif/ID3/XMP + acrostic |
+| 23 | PNG Check | png | Chunk-level validation |
+| 25 | PNG CRC | png | CRC check + brute-force dimensions |
+| 30 | Zsteg | png, bmp | LSB steganography detection |
+| 35 | QR | jpg, jpeg, png, bmp, gif | QR/barcode scanning |
+| 36 | Stepic | png, bmp | LSB decode via stepic |
+| 36 | PDF Images | pdf | Extract embedded raster images |
+| 37 | GIF Palette | gif | Per-frame palette analysis |
+| 38 | PDF Analysis | pdf | Decompression, comments, post-%%EOF |
+| 39 | StegSeek | jpg, jpeg, bmp, wav | 100x faster steghide cracking |
+| 40 | Steghide | jpg, jpeg, bmp, wav | Data extraction + brute-force |
+| 42 | OutGuess | jpg, jpeg | OutGuess data extraction |
+| 43 | JPHide | jpg, jpeg | JPHide data extraction |
+| 44 | F5 | jpg, jpeg | F5 data extraction |
+| 45 | Bit Plane | png, bmp | Extract bit planes 0–7 as PNGs |
+| 46 | JPEG DQT | jpg, jpeg | LSB from unused quantization tables |
+| 47 | Binary Border | jpg, png, bmp, gif | Read border pixels as binary |
+| 49 | FFT Domain | jpg, png, bmp, gif | Frequency domain analysis |
+
+### Audio Analysis (6)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 41 | MP3Stego | mp3 | Extract MP3Stego hidden data |
+| 48 | Spectrogram | wav, au, mp3 | Generate spectrogram image |
+| 50 | Audio Reverse | wav, mp3, au | Reverse audio + flag search |
+| 51 | SSTV | wav | Decode slow-scan television images |
+| 52 | DTMF | wav | Decode telephone tones |
+| 53 | Steghide (WAV) | wav | Audio steghide extraction |
+
+### Documents & Text (3)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 32 | Snow | txt, html, css, js | Whitespace steganography |
+| 33 | Zero Width | txt, html, css, js | Zero-width Unicode detection |
+| 34 | OleVBA | doc, docx, xls, xlsx, ppt, pptx | Office macro analysis |
+
+### Archives (1)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 55 | ZIP Brute | zip | Crack passwords (fcrackzip + unzip) |
+
+### Carving & Recovery (2)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 60 | Binwalk | raw, bin | Embedded file detection |
+| 70 | Foremost | raw, bin, img | File carving |
+
+### Crypto (1)
+
+| Pri | Module | Formats | Description |
+|-----|--------|---------|-------------|
+| 80 | XOR Brute | any | Single-byte XOR brute-force |
+
+---
+
+## Decision Engine
+
+Modules are selected dynamically based on file type. Rule files in `core/decision_rules/` define which modules apply:
+
+- **image.sh** — 30+ image analysis modules
+- **audio.sh** — 6 audio analysis modules  
+- **archive.sh** — ZIP brute-force, carving
+- **crypto.sh** — XOR, ROT, base64
+- **repair.sh** — File repair, polyglot detection
+- **kb.sh** — Knowledge Base suggested modules
+
+Each module has a **confidence score** (0–100) that blends hardcoded base with KB success statistics.
+
+---
+
+## Knowledge Base
+
+SQLite-powered learning system (`knowledge/`):
+
+| Component | Description |
+|-----------|-------------|
+| `db.sh` | Database interface (18 functions) |
+| `schema.sql` | Tables: writeups, knowledge, statistics, sources, evidence, sync_log |
+| `sync.sh` | Auto-sync writeups from CTF sources (relevance-filtered) |
+| `kbe.sh` | CLI interface (19 commands) |
+| `inference.sh` | Tool suggestion engine |
+
+```bash
+stegoforge knowledge init          # Initialize database
+stegoforge knowledge sync --auto   # Import relevant writeups
+stegoforge knowledge suggest file.png  # Get KB recommendations
+stegoforge knowledge stats png     # Show tool success stats
+```
 
 ---
 
 ## Output
 
 ```
-~/Downloads/
-  <file>.png / .jpg / .gif      ← Polyglot Fixer clean copy
-
 output/sessions/<pid>/
-  carved/                        ← Extracted files, frames, wordlists
-  bitplanes/                     ← Bit plane images (0–7)
-  spectrograms/                  ← Spectrogram images
-  repaired/                      ← Repaired files
-  reports/                       ← (future)
+  carved/         Extracted/carved files
+  bitplanes/      Bit plane images (0–7)
+  spectrograms/   Spectrogram images
+  repaired/       Repaired files
+  reports/        KB evidence logs
 ```
 
 ---
@@ -199,32 +247,16 @@ analyze_mymodule() {
 }
 ```
 
-**Variables:** `$f`, `$wl`, `$OUTDIR`, `$FLAG_PATTERNS`, `$SMART_WL`, `$VERBOSE`
-
----
-
-## Tests
-
-```bash
-./tests/run_tests.sh
-```
-
-| Status | Count |
-|--------|-------|
-| ✅ Pass | 22 |
-| ❌ Fail | 0 |
-| ⏭️ Skip | 3 (QR/pyzbar, PDF/reportlab, Disk/mount) |
-| **Total** | **28** |
+**Environment variables:** `$f`, `$wl`, `$OUTDIR`, `$FLAG_PATTERNS`, `$SMART_WL`, `$VERBOSE`, `$VERBOSE_CMD`, `$JSON`, `$SUMMARY`
 
 ---
 
 ## Coding Standards
 
-- No `eval`
-- No inline `python3 -c` with string interpolation — use env vars
-- No `cmd | while read` — use `done < <(cmd)`
+- No `eval`, no unsafe `python3 -c`
 - Flag output via `emit "flag" "..."`, never `echo`
 - Modules gracefully skip missing deps, never crash
+- Pipeline-safe: no data loss, no infinite loops (protected by Loop Guard)
 
 ---
 
@@ -235,6 +267,8 @@ MIT — Use it, modify it, ship it.
 ---
 
 <p align="center">
-  <a href="https://github.com/id7eng/StegoForge">GitHub</a> · <a href="https://github.com/id7eng/StegoForge/issues">Issues</a> · <a href="https://github.com/id7eng/StegoForge/releases">Releases</a><br>
+  <a href="https://github.com/id7eng/StegoForge">GitHub</a> ·
+  <a href="https://github.com/id7eng/StegoForge/issues">Issues</a> ·
+  <a href="https://github.com/id7eng/StegoForge/releases">Releases</a><br>
   <sub>Built for the CTF community · No AI · No Payments · Just tools</sub>
 </p>

@@ -47,7 +47,7 @@ with open('$3','wb') as f: f.write(png(w,h,bytes(pix)))
 }
 
 echo -e "${C}╔══════════════════════════════════════════════╗${N}"
-echo -e "${C}║     ${W}StegoForge v1.3.2${C} - Test Suite       ║${N}"
+echo -e "${C}║     ${W}StegoForge v2.0.0${C} - Test Suite       ║${N}"
 echo -e "${C}╚══════════════════════════════════════════════╝${N}"
 echo ""
 
